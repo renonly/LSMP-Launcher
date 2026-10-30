@@ -1,9 +1,9 @@
 {
   "name": "lsmp-launcher",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "LSMP",
   "main": "main.js",
-  "author": "LSMP Studio",
+  "author": "renonly",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --publish never"
