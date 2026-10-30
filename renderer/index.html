@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+  <title>SMP Launcher</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <header class="titlebar">
+    <span></span>
+    <div class="win-btns">
+      <button data-win="min" aria-label="Minimizar">–</button>
+      <button data-win="max" aria-label="Maximizar">▢</button>
+      <button data-win="close" class="close" aria-label="Fechar">✕</button>
+    </div>
+  </header>
+
+  <div id="update" class="update" hidden>
+    <span id="update-text"></span>
+    <button id="update-btn" hidden>Reiniciar e atualizar</button>
+  </div>
+
+  <main id="auth" class="screen center">
+    <section class="card">
+      <h1 id="auth-title">Entrar</h1>
+      <p class="sub">Use a conta que você criou pro servidor.</p>
+      <label>Usuário<input id="u" autocomplete="username" maxlength="16" /></label>
+      <label>Senha<input id="p" type="password" autocomplete="current-password" /></label>
+      <label id="p2-wrap" hidden>Repita a senha<input id="p2" type="password" autocomplete="new-password" /></label>
+      <p id="auth-error" class="error" role="alert"></p>
+      <button id="auth-submit" class="solid">Entrar</button>
+      <button id="auth-toggle" class="ghost">Criar uma conta</button>
+    </section>
+  </main>
+
+  <main id="home" class="screen home" hidden>
+    <div class="user">
+      <span id="who"></span>
+      <button id="logout" class="ghost small">Sair</button>
+    </div>
+
+    <section class="hero">
+      <h1 id="hero-name">Meu SMP</h1>
+      <p id="hero-sub"></p>
+    </section>
+
+    <section class="dock">
+      <div class="progress" id="progress" hidden>
+        <div class="progress-text"><span id="stage"></span><span id="file"></span></div>
+        <div class="bar"><div id="bar-fill"></div></div>
+      </div>
+      <p id="game-error" class="error" role="alert"></p>
+      <div class="row">
+        <label class="ram" for="ram">
+          <span>Memória <b id="ram-val">4</b> GB</span>
+          <input id="ram" type="range" min="2" max="16" step="1" value="4" />
+        </label>
+        <button id="play" class="solid big">Jogar</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
