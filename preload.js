@@ -1,7 +1,7 @@
 const { contextBridge, ipcRenderer } = require("electron");
 const inv = (ch) => (...a) => ipcRenderer.invoke(ch, ...a);
 
-contextBridge.exposeInMainWorld("api", {
+contextBridge.exposeInMainWorld("lsmp", {
   session: inv("auth:session"),
   login: inv("auth:login"),
   register: inv("auth:register"),

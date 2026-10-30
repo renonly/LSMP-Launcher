@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const api = window.api;
+const api = window.lsmp;
 const state = { cfg: null, s: null, session: null, status: null, pings: [], busy: false, running: false, pack: null, shot: null };
 const COLORS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#f87171", "#2dd4bf"];
 
