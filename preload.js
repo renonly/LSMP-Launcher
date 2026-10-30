@@ -35,5 +35,6 @@ contextBridge.exposeInMainWorld("lsmp", {
   updateState: inv("update:state"),
   updateCheck: inv("update:check"),
   installUpdate: () => ipcRenderer.send("update:install"),
+  downloadInstall: inv("update:download-install"),
   onUpdate: (fn) => ipcRenderer.on("update:status", (_e, d) => fn(d)),
 });
