@@ -1,7 +1,7 @@
 const { Client } = require("minecraft-launcher-core");
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
+const { spawnSync, spawn } = require("child_process");
 const { app } = require("electron");
 const cfg = require("./config");
 const updater = require("./updater");
@@ -21,6 +21,55 @@ async function ensureFabric(root, mc, loader) {
     fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
     fs.writeFileSync(jsonPath, await res.text());
   }
+  return id;
+}
+
+// Baixa o instalador do Forge (o minecraft-launcher-core roda ele sozinho na 1ª vez)
+async function ensureForge(root, mc, loader) {
+  const name = `forge-${mc}-${loader}-installer.jar`;
+  const dest = path.join(root, "forge", name);
+  if (!fs.existsSync(dest)) {
+    const url = `https://maven.minecraftforge.net/net/minecraftforge/forge/${mc}-${loader}/${name}`;
+    let res;
+    try { res = await fetch(url, { signal: AbortSignal.timeout(120000) }); }
+    catch { throw new Error("Não consegui baixar o Forge. Verifique sua internet."); }
+    if (!res.ok) throw new Error(`Não achei o Forge ${loader} para o Minecraft ${mc} (HTTP ${res.status}).`);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const tmp = dest + ".part";
+    fs.writeFileSync(tmp, Buffer.from(await res.arrayBuffer()));
+    fs.renameSync(tmp, dest);
+  }
+  return dest;
+}
+
+// NeoForge: baixa o instalador e roda "--installClient" na pasta da instância (1ª vez)
+async function ensureNeoForge(root, loader, javaPath, log) {
+  const id = `neoforge-${loader}`;
+  if (fs.existsSync(path.join(root, "versions", id, `${id}.json`))) return id;
+  const name = `neoforge-${loader}-installer.jar`;
+  const dest = path.join(root, "neoforge", name);
+  if (!fs.existsSync(dest)) {
+    const url = `https://maven.neoforged.net/releases/net/neoforged/neoforge/${loader}/${name}`;
+    let res;
+    try { res = await fetch(url, { signal: AbortSignal.timeout(120000) }); }
+    catch { throw new Error("Não consegui baixar o NeoForge. Verifique sua internet."); }
+    if (!res.ok) throw new Error(`Não achei o NeoForge ${loader} (HTTP ${res.status}).`);
+    fs.mkdirSync(path.dirname(dest), { recursive: true });
+    const tmp = dest + ".part";
+    fs.writeFileSync(tmp, Buffer.from(await res.arrayBuffer()));
+    fs.renameSync(tmp, dest);
+  }
+  // o instalador exige um launcher_profiles.json na pasta de destino
+  const prof = path.join(root, "launcher_profiles.json");
+  if (!fs.existsSync(prof)) fs.writeFileSync(prof, JSON.stringify({ profiles: {} }));
+  await new Promise((resolve, reject) => {
+    const p = spawn(javaPath || "java", ["-jar", dest, "--installClient", root], { cwd: root });
+    p.stdout.on("data", log); p.stderr.on("data", log);
+    p.on("error", () => reject(new Error("Não consegui rodar o instalador do NeoForge (Java ok?).")));
+    p.on("close", (c) => (c === 0 ? resolve() : reject(new Error(`Instalador do NeoForge falhou (código ${c}). Veja a aba Console.`))));
+  });
+  if (!fs.existsSync(path.join(root, "versions", id, `${id}.json`)))
+    throw new Error("NeoForge instalado, mas o perfil não foi encontrado. Veja a aba Console.");
   return id;
 }
 
@@ -101,16 +150,19 @@ async function play(session, s, send) {
   const mc = typeof manifest.minecraft === "string"
     ? manifest.minecraft
     : manifest.minecraft?.version || cfg.MC_VERSION;
-  const loader = manifest.loader?.version || cfg.FABRIC_LOADER;
-  const loaderType = manifest.loader?.type || "fabric";
-  if (loaderType !== "fabric")
-    throw new Error(`Este pack usa ${loaderType}, mas o launcher só suporta Fabric por enquanto.`);
+  const loaderType = (manifest.loader?.type || "fabric").toLowerCase();
+  if (!["fabric", "forge", "neoforge"].includes(loaderType))
+    throw new Error(`Este pack usa ${loaderType}, mas o launcher só suporta Fabric, Forge e NeoForge.`);
+  const loader = manifest.loader?.version || ({ forge: cfg.FORGE_LOADER, neoforge: cfg.NEOFORGE_LOADER }[loaderType] || cfg.FABRIC_LOADER);
 
   send("progress", { stage: "Verificando o Java", done: 0, total: 0 });
   checkJava(mc, s.javaPath);
-  const fabricId = await ensureFabric(root, mc, loader);
-
   const log = (m) => String(m).split(/\r?\n/).filter(Boolean).forEach((l) => send("log", l));
+  let fabricId = null, forgeInstaller = null;
+  if (loaderType === "neoforge") fabricId = await ensureNeoForge(root, loader, s.javaPath, log); // usa o perfil instalado como "custom"
+  else if (loaderType === "forge") forgeInstaller = await ensureForge(root, mc, loader);
+  else fabricId = await ensureFabric(root, mc, loader);
+
   const launcher = new Client();
   launcher.on("progress", (e) =>
     send("progress", { stage: `Baixando ${e.type}`, done: e.task, total: e.total })
@@ -130,7 +182,8 @@ async function play(session, s, send) {
       meta: { type: "mojang", demo: false },
     },
     root,
-    version: { number: mc, type: "release", custom: fabricId },
+    version: fabricId ? { number: mc, type: "release", custom: fabricId } : { number: mc, type: "release" },
+    ...(forgeInstaller ? { forge: forgeInstaller } : {}),
     memory: { max: `${s.ramGb}G`, min: `${Math.max(1, Math.min(2, s.ramGb))}G` },
     // Entra direto no servidor
     server: { host: cfg.SERVER_HOST, port: cfg.SERVER_PORT },

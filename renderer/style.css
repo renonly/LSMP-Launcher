@@ -1,6 +1,7 @@
 :root {
-  --accent: #4ade80;
-  --accent-ink: #06210f;
+  --accent: #94e3fe;
+  --accent-ink: #141925;
+  --edge: #141925;
   --bg: #0e131b;
   --panel: rgba(20, 27, 38, .78);
   --panel2: rgba(255, 255, 255, .05);
@@ -8,8 +9,8 @@
   --text: #e8edf5;
   --muted: #8d99ab;
   --danger: #f87171;
-  --blur: 6px;
-  --dim: .55;
+  --blur: 0px;
+  --dim: .3;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
@@ -19,7 +20,7 @@ h1, h2, h3, p { margin: 0; }
 button, input, select { font: inherit; color: inherit; }
 
 .bg { position: fixed; inset: -30px; background-color: #0e131b;
-  background-image: radial-gradient(60% 50% at 25% 20%, rgba(74,222,128,.14), transparent 70%), radial-gradient(55% 55% at 80% 85%, rgba(56,189,248,.12), transparent 70%), linear-gradient(135deg, #111827, #0b0f17);
+  background-image: url("background.jpg"), radial-gradient(60% 50% at 25% 20%, rgba(74,222,128,.14), transparent 70%), radial-gradient(55% 55% at 80% 85%, rgba(56,189,248,.12), transparent 70%), linear-gradient(135deg, #111827, #0b0f17);
   background-size: cover; background-position: center; filter: blur(var(--blur)); z-index: -2; }
 .veil { position: fixed; inset: 0; background: linear-gradient(90deg, rgba(8,11,17,calc(var(--dim) + .3)), rgba(8,11,17,var(--dim))); z-index: -1; }
 
@@ -132,7 +133,7 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
 .item .n { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item .s { color: var(--muted); font-size: 12.5px; }
-.item .ok { color: #4ade80; } .item .miss { color: var(--danger); }
+.item .ok { color: #94e3fe; } .item .miss { color: var(--danger); }
 .news-item { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; backdrop-filter: blur(10px); user-select: text; }
 .news-item header { display: flex; align-items: center; gap: 10px; }
 .news-item header b { font-size: 16px; flex: 1; }
@@ -181,3 +182,50 @@ input[type=color] { width: 44px; height: 30px; padding: 0; border: 0; background
 .toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: #1d2635; border: 1px solid var(--line); padding: 10px 18px; border-radius: 12px; z-index: 90; box-shadow: 0 8px 30px rgba(0,0,0,.5); }
 
 @media (max-width: 1000px) { .tiles, .kv { grid-template-columns: repeat(2, 1fr); } }
+
+/* ===== botões no estilo azul-claro com borda escura ===== */
+button { background: var(--accent); color: var(--accent-ink); font-weight: 700; border: 2px solid var(--edge);
+  box-shadow: 0 3px 0 var(--edge); transition: transform .12s ease, box-shadow .12s ease, filter .15s ease; }
+button:hover { background: var(--accent); filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 5px 0 var(--edge); }
+button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--edge); }
+button.solid, button.solid:hover { background: var(--accent); }
+button.outline, button.outline:hover { background: var(--accent); border-color: var(--edge); }
+button.danger { background: #ff9a9a; color: var(--edge); border-color: var(--edge); }
+button.danger:hover { background: #ff9a9a; }
+button:disabled { box-shadow: 0 3px 0 var(--edge); transform: none; filter: grayscale(.6); }
+/* botões "discretos" continuam sem fundo */
+.win-btns button, #nav button, .subtabs button, button.ghost, .chips-list button {
+  background: transparent; box-shadow: none; border-color: transparent; font-weight: inherit; transform: none; filter: none; }
+.win-btns button { color: var(--muted); }
+.win-btns button:hover { background: var(--panel2); color: var(--text); }
+#nav button { color: var(--muted); } #nav button:hover { background: var(--panel2); color: var(--text); transform: translateX(4px); }
+#nav button.active { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); font-weight: 600; }
+.subtabs button { color: var(--muted); } .subtabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+.chips-list button { color: var(--text); border: 1px solid var(--line); }
+
+/* ===== animações ===== */
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes zoomBg { from { transform: scale(1); } to { transform: scale(1.08) translate(-8px, -6px); } }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(148,227,254,.6); } 70% { box-shadow: 0 0 0 8px rgba(148,227,254,0); } 100% { box-shadow: 0 0 0 0 rgba(148,227,254,0); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+.bg { animation: zoomBg 40s ease-in-out infinite alternate; }
+.side { animation: slideIn .5s ease both; }
+.view:not([hidden]) { animation: rise .4s ease backwards; }
+.view:not([hidden]) > *, .sub-pane:not([hidden]) > * { animation: rise .45s ease backwards; }
+.view:not([hidden]) > *:nth-child(2), .sub-pane:not([hidden]) > *:nth-child(2) { animation-delay: .06s; }
+.view:not([hidden]) > *:nth-child(3), .sub-pane:not([hidden]) > *:nth-child(3) { animation-delay: .12s; }
+.view:not([hidden]) > *:nth-child(4) { animation-delay: .18s; }
+.view:not([hidden]) > *:nth-child(5) { animation-delay: .24s; }
+.card { animation: rise .6s ease both; }
+.tile, .news-item, .group, .item, .chip, .srv-card, .latest { transition: transform .2s ease, border-color .2s ease; }
+.tile:hover, .news-item:hover, .group:hover, .srv-card:hover, .latest:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 50%, transparent); }
+.item:hover { transform: translateX(4px); }
+.dot.on { animation: pulse 2s infinite; }
+.bar > div { background: linear-gradient(90deg, var(--accent), #fff, var(--accent)); background-size: 200% 100%; animation: shimmer 2s linear infinite; }
+#play:not(:disabled) { animation: float 2.4s ease-in-out infinite; }
+#play:not(:disabled):hover { animation: none; }
+.avatar { transition: transform .2s ease; } .avatar:hover { transform: rotate(-6deg) scale(1.08); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

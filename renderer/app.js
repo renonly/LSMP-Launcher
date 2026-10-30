@@ -74,14 +74,7 @@ function enter(session) {
 }
 
 // ---------- aparência ----------
-function applyLook(s) {
-  const r = document.documentElement.style;
-  r.setProperty("--accent", s.accent);
-  r.setProperty("--blur", s.bgBlur + "px");
-  r.setProperty("--dim", s.bgDim / 100);
-  $("bg").style.backgroundImage = s.bgUrl ? `url("${s.bgUrl}")` : "";
-  document.querySelectorAll(".swatches button").forEach((b) => b.classList.toggle("on", b.dataset.c === s.accent.toLowerCase()));
-}
+function applyLook() {} // visual fixo (cor e fundo definidos no CSS)
 
 // ---------- status do servidor (só ícones, sem IP) ----------
 async function refreshStatus() {
@@ -225,9 +218,7 @@ function fillSettings(s) {
   $("s-width").value = s.width || ""; $("s-height").value = s.height || "";
   $("s-onlaunch").value = s.onLaunch; $("s-java").value = s.javaPath;
   $("s-preset").value = s.jvmPreset; $("s-jvm").value = s.jvmArgs;
-  $("s-startup").checked = s.launchAtStartup; $("s-accent").value = s.accent;
-  $("s-blur").value = s.bgBlur; $("s-blur-val").textContent = s.bgBlur;
-  $("s-dim").value = s.bgDim; $("s-dim-val").textContent = s.bgDim;
+  $("s-startup").checked = s.launchAtStartup;
   applyLook(s);
 }
 const save = debounce(async (patch) => { fillSettingsLight(await api.setSettings(patch)); }, 250);
@@ -250,16 +241,6 @@ $("s-java").oninput = (e) => set({ javaPath: e.target.value });
 $("s-preset").onchange = (e) => set({ jvmPreset: e.target.value });
 $("s-jvm").oninput = (e) => set({ jvmArgs: e.target.value });
 $("s-startup").onchange = (e) => set({ launchAtStartup: e.target.checked });
-$("s-accent").oninput = (e) => set({ accent: e.target.value });
-$("s-blur").oninput = (e) => { $("s-blur-val").textContent = e.target.value; set({ bgBlur: +e.target.value }); };
-$("s-dim").oninput = (e) => { $("s-dim-val").textContent = e.target.value; set({ bgDim: +e.target.value }); };
-$("swatches").replaceChildren(...COLORS.map((c) => {
-  const b = document.createElement("button"); b.dataset.c = c; b.style.background = c; b.title = c;
-  b.onclick = () => { $("s-accent").value = c; set({ accent: c }); }; return b;
-}));
-$("bg-quick").onclick = async () => fillSettings(await api.chooseBg());
-$("bg-choose").onclick = async () => fillSettings(await api.chooseBg());
-$("bg-clear").onclick = async () => fillSettings(await api.clearBg());
 $("reset-settings").onclick = async () => { fillSettings(await api.resetSettings()); toast("Ajustes restaurados."); };
 $("open-data").onclick = () => api.openData();
 $("open-log").onclick = () => api.openLog();
