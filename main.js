@@ -13,7 +13,7 @@ const stats = require("./src/stats");
 const news = require("./src/news");
 const cfg = require("./src/config");
 
-if (!app.requestSingleInstanceLock()) app.quit();
+if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
 let win;
 let running = false;
@@ -36,7 +36,18 @@ function createWindow() {
       ? path.join(__dirname, "build", "icon.png") : undefined,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
-  win.loadFile("renderer/index.html");
+  win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  // diagnóstico: tudo que der errado na tela vai pro launcher.log
+  win.webContents.on("console-message", (_e, level, msg, line, src) => { if (level >= 2) log("renderer:", msg, `(${src}:${line})`); });
+  win.webContents.on("render-process-gone", (_e, d) => log("render-process-gone", JSON.stringify(d)));
+  win.webContents.on("unresponsive", () => log("janela não está respondendo"));
+  win.webContents.on("preload-error", (_e, p, err) => log("preload-error", p, err));
+  win.webContents.on("did-fail-load", (_e, code, desc) => log("did-fail-load", code, desc));
+  // F12 ou Ctrl+Shift+I abre o DevTools
+  win.webContents.on("before-input-event", (_e, i) => {
+    if (i.type === "keyDown" && (i.key === "F12" || (i.control && i.shift && i.key.toLowerCase() === "i")))
+      win.webContents.toggleDevTools();
+  });
   win.webContents.once("did-finish-load", () => setTimeout(() => checkUpdates(false), 2500));
 }
 app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
@@ -230,6 +241,7 @@ ipcMain.handle("game:sync", wrap(async (force) => {
 }));
 
 ipcMain.on("win", (_e, action) => {
+  if (!win || win.isDestroyed()) return;
   if (action === "min") win.minimize();
   if (action === "max") win.isMaximized() ? win.unmaximize() : win.maximize();
   if (action === "close") win.close();

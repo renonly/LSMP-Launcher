@@ -15,8 +15,10 @@ async function call(route, body) {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
-  } catch {
+  } catch (e) {
+    if (e && e.name === "TimeoutError") throw new Error("A API demorou demais pra responder. Tente de novo.");
     throw new Error("Não deu pra conectar na API. Verifique sua internet.");
   }
   if (res.status === 404)

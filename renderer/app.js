@@ -12,6 +12,13 @@ const fmtDate = (d) => new Date(d).toLocaleDateString("pt-BR");
 const fmtHours = (ms) => { const m = Math.floor(ms / 60000); return m < 60 ? `${m} min` : `${(m / 60).toFixed(1).replace(".0", "")} h`; };
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+// logos opcionais: some se o arquivo não existir (onerror inline é bloqueado pela CSP)
+document.querySelectorAll("img.logo, img.logo-sm").forEach((img) => {
+  const drop = () => img.remove();
+  img.addEventListener("error", drop);
+  if (img.complete && img.naturalWidth === 0) drop();
+});
+
 // ---------- navegação ----------
 function go(tab) {
   document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
