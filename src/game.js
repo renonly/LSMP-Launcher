@@ -87,13 +87,6 @@ function checkJava(mc, javaPath) {
 async function syncOnly(force, send) {
   const root = gameDir();
   fs.mkdirSync(root, { recursive: true });
-  if (force) {
-    // força o Fabric a ser baixado de novo também
-    const dir = path.join(root, "versions");
-    if (fs.existsSync(dir))
-      for (const d of fs.readdirSync(dir))
-        if (d.startsWith("fabric-loader-")) fs.rmSync(path.join(dir, d), { recursive: true, force: true });
-  }
   return updater.sync(root, (p) => send("progress", p), { force });
 }
 

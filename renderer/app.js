@@ -134,13 +134,17 @@ function renderPack() {
   $("pack-stats").replaceChildren(...[`${p.files.length} arquivos`, fmtSize(total), `${ok} instalados`].map((t) => {
     const c = document.createElement("span"); c.className = "chip static"; c.textContent = t; return c;
   }));
+  const b = $("pack-banner"), ch = (t) => { const c = document.createElement("span"); c.className = "chip static"; c.textContent = t; return c; };
+  if (p.offline) b.replaceChildren(ch("⚠ Sem conexão: não deu pra checar atualizações"));
+  else if (p.updateAvailable) { b.replaceChildren(ch(`⬆ Atualização disponível: v${p.version} (${p.pendingCount} arquivo(s), ${fmtSize(p.pendingSize)})`)); $("pack-update").textContent = "Atualizar agora"; }
+  else { b.replaceChildren(ch(`✓ Tudo atualizado (v${p.version})`)); $("pack-update").textContent = "Verificar atualizações"; }
   let files = p.files.filter((x) => x.path.toLowerCase().includes(q) && (f === "all" || (f === "ok") === x.installed));
   files.sort((a, b) => (so === "size" ? b.size - a.size : a.path.localeCompare(b.path)));
   $("pack-list").replaceChildren(...files.map((x) => {
     const d = document.createElement("div"); d.className = "item";
     const n = document.createElement("span"); n.className = "n"; n.textContent = x.path; n.title = x.path;
     const s = document.createElement("span"); s.className = "s"; s.textContent = fmtSize(x.size);
-    const k = document.createElement("span"); k.className = x.installed ? "ok" : "miss"; k.textContent = x.installed ? "✓" : "✗";
+    const k = document.createElement("span"); k.className = x.installed ? "ok" : "miss"; k.textContent = x.installed ? "✓" : x.status === "outdated" ? "⬆" : "✗"; k.title = x.installed ? "Atualizado" : x.status === "outdated" ? "Desatualizado" : "Faltando";
     d.append(n, s, k); return d;
   }));
 }
@@ -152,11 +156,13 @@ async function runSync(force) {
   const r = await api.sync(force);
   setBusy(false);
   if (!r.ok) { $("game-error").textContent = r.error; $("pack-error").textContent = r.error; }
-  else toast(force ? "Arquivos reparados!" : "Pack atualizado!");
+  else toast(force ? "Arquivos reparados!" : "Pack verificado e atualizado!");
   loadPack();
 }
-$("repair").onclick = () => runSync(true);
-$("play-repair").onclick = () => runSync(true);
+const confirmRepair = () => confirm("Reparar vai baixar TODOS os arquivos do pack de novo. Para só atualizar o que mudou, use 'Verificar atualizações'. Continuar?") && runSync(true);
+$("pack-update").onclick = () => runSync(false);
+$("repair").onclick = confirmRepair;
+$("play-repair").onclick = confirmRepair;
 
 // ---------- capturas ----------
 async function loadShots() {
@@ -176,7 +182,7 @@ $("lb-show").onclick = () => state.shot && api.showShot(state.shot.path);
 // ---------- jogar ----------
 function setBusy(b) {
   state.busy = b;
-  $("play").disabled = b || state.running; $("repair").disabled = b; $("play-repair").disabled = b;
+  $("play").disabled = b || state.running; $("repair").disabled = b; $("pack-update").disabled = b; $("play-repair").disabled = b;
   $("progress").hidden = !b && !state.running;
   if (!b && !state.running) $("bar-fill").style.width = "0";
 }

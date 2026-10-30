@@ -4,7 +4,8 @@ const { API_URL: RAW_API_URL, MANAGED_DIRS } = require("./config");
 const API_URL = RAW_API_URL.replace(/\/+$/, "");
 const API_ORIGIN = new URL(API_URL).origin;
 const R2_ORIGIN = "https://pub-0aa8b496587a463a803f53f6b16bfdda.r2.dev";
-const PARALLEL = 4, cachePath = d => path.join(d, "manifest.cache.json");
+const PARALLEL = 4, cachePath = d => path.join(d, "manifest.cache.json"), statePath = d => path.join(d, "pack.installed.json");
+const readInstalled = d => { try { return JSON.parse(fs.readFileSync(statePath(d), "utf8")); } catch { return null; } };
 const posix = p => String(p).replace(/\\/g, "/");
 const sha1 = p => new Promise(resolve => {
   const h = crypto.createHash("sha1");
@@ -91,15 +92,26 @@ async function loadManifest(dir) {
 
 async function info(dir) {
   const { manifest, offline } = await loadManifest(dir);
+  const files = [];
+  for (const f of manifest.files) {
+    const abs = path.join(dir, ...posix(f.path).split("/"));
+    const exists = fs.existsSync(abs);
+    // status: ok (igual ao do servidor), outdated (existe mas mudou), missing (não existe)
+    const status = !exists ? "missing" : (await sha1(abs)) === f.sha1 ? "ok" : "outdated";
+    files.push({ path: f.path, size: f.size || 0, installed: status === "ok", status });
+  }
+  const pending = files.filter(f => f.status !== "ok");
+  const installed = readInstalled(dir);
   return {
     version: manifest.version,
+    installedVersion: installed?.version || null,
     minecraft: typeof manifest.minecraft === "string" ? manifest.minecraft : manifest.minecraft.version,
     loader: manifest.loader,
     offline,
-    files: manifest.files.map(f => ({
-      path: f.path, size: f.size || 0,
-      installed: fs.existsSync(path.join(dir, ...posix(f.path).split("/")))
-    }))
+    updateAvailable: !offline && pending.length > 0,
+    pendingCount: pending.length,
+    pendingSize: pending.reduce((a, f) => a + f.size, 0),
+    files
   };
 }
 
@@ -137,7 +149,8 @@ async function sync(dir, onProgress = () => {}, { force = false } = {}) {
       if (!wanted.has(rel)) fs.unlinkSync(abs);
     }
   }
-  onProgress({ stage: "Pack atualizado", done: todo.length, total: todo.length });
+  try { fs.writeFileSync(statePath(root), JSON.stringify({ version: manifest.version, at: Date.now() })); } catch {}
+  onProgress({ stage: todo.length ? "Pack atualizado" : "Pack já está na versão mais recente", done: todo.length, total: todo.length });
   return manifest;
 }
 

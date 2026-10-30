@@ -85,7 +85,7 @@
           <p id="game-error" class="error" role="alert"></p>
           <div class="row">
             <label class="ram" for="ram"><span>Memória <b id="ram-val">4</b> GB</span><input id="ram" type="range" min="2" max="16" step="1" value="4" /></label>
-            <button id="play-repair" class="outline" title="Baixa tudo de novo e confere os arquivos">Reparar</button>
+            <button id="play-repair" class="outline" title="Baixa todos os arquivos do pack de novo">Reparar</button>
             <button id="stop" class="danger big" hidden>Fechar jogo</button>
             <button id="play" class="solid big">Jogar</button>
           </div>
@@ -102,12 +102,14 @@
       <section class="view panel" data-view="pack" hidden>
         <h2>Pack de mods</h2>
         <div class="stats" id="pack-stats"></div>
+        <div id="pack-banner" class="stats" style="margin:8px 0"></div>
         <p id="pack-error" class="error" role="alert"></p>
         <div class="toolbar">
           <input id="pack-search" type="search" placeholder="Buscar mod…" />
           <select id="pack-filter"><option value="all">Todos</option><option value="ok">Instalados</option><option value="miss">Faltando</option></select>
           <select id="pack-sort"><option value="name">Nome</option><option value="size">Tamanho</option></select>
-          <button id="repair" class="outline">Verificar e reparar</button>
+          <button id="pack-update" class="solid">Verificar atualizações</button>
+          <button id="repair" class="outline" title="Baixa todos os arquivos do pack de novo">Reparar (rebaixar tudo)</button>
           <button class="outline" data-open-dir>Pasta do jogo</button>
         </div>
         <div class="list" id="pack-list"></div>
