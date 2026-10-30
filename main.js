@@ -28,10 +28,15 @@ const log = (...a) => {
   } catch {}
 };
 
+// proteção: erro inesperado vai pro launcher.log em vez de derrubar o app em silêncio
+process.on("uncaughtException", (e) => log("uncaughtException", e));
+process.on("unhandledRejection", (e) => log("unhandledRejection", e instanceof Error ? e : new Error(String(e))));
+app.on("child-process-gone", (_e, d) => log("child-process-gone", JSON.stringify(d)));
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1100, height: 680, minWidth: 900, minHeight: 600,
-    frame: false, backgroundColor: "#0e131b",
+    frame: false, backgroundColor: "#0b0814",
     icon: fs.existsSync(path.join(__dirname, "build", "icon.png"))
       ? path.join(__dirname, "build", "icon.png") : undefined,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },

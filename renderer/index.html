@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; style-src 'self'; script-src 'self'" />
-  <title>Launcher</title>
+  <title>ESMP</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -21,7 +21,7 @@
   <!-- ===== LOGIN ===== -->
   <main id="auth" class="center">
     <section class="card">
-      <img class="logo" src="logo.png" alt="" />
+      <div class="lotus" aria-hidden="true"></div>
       <h1 id="auth-title">Entrar</h1>
       <p class="sub">Use a conta que você criou pro servidor.</p>
       <label>Usuário<input id="u" autocomplete="username" maxlength="16" /></label>
@@ -36,14 +36,14 @@
   <!-- ===== APP ===== -->
   <div id="app" class="app" hidden>
     <aside class="side">
-      <div class="brand"><img class="logo-sm" src="logo.png" alt="" /><b id="brand-name">LSMP</b></div>
+      <div class="brand"><img class="logo-sm" src="lotus.png" alt="" /><b id="brand-name">ESMP</b></div>
       <nav id="nav">
-        <button data-tab="play" class="active"><i>▶</i>Início</button>
-        <button data-tab="news"><i>✦</i>Novidades</button>
-        <button data-tab="pack"><i>▤</i>Mods</button>
-        <button data-tab="shots"><i>▣</i>Capturas</button>
-        <button data-tab="console"><i>›_</i>Console</button>
-        <button data-tab="settings"><i>⚙</i>Ajustes</button>
+        <button data-tab="play" class="active"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"/></svg>Início</button>
+        <button data-tab="news"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/></svg>Novidades</button>
+        <button data-tab="pack"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 17l9 5 9-5"/></svg>Mods</button>
+        <button data-tab="shots"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>Capturas</button>
+        <button data-tab="console"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>Console</button>
+        <button data-tab="settings"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
       </nav>
       <div class="side-bottom">
         <div id="upd" class="upd" hidden>
@@ -63,7 +63,8 @@
       <!-- INÍCIO -->
       <section class="view" data-view="play">
         <div class="hero">
-          <h1 id="hero-name">LSMP</h1>
+          <div class="lotus xl" aria-hidden="true"></div>
+          <h1 id="hero-name">ESMP</h1>
           <div class="badges">
             <span class="badge" title="Jogadores online"><i id="srv-dot" class="dot"></i><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><b id="t-players">—</b></span>
             <span class="badge" title="Ping"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg><b id="t-ping">—</b></span>
@@ -101,7 +102,7 @@
       <section class="view panel" data-view="pack" hidden>
         <h2>Pack de mods</h2>
         <div class="stats" id="pack-stats"></div>
-        <div id="pack-banner" class="stats" style="margin:8px 0"></div>
+        <div id="pack-banner" class="stats"></div>
         <p id="pack-error" class="error" role="alert"></p>
         <div class="toolbar">
           <input id="pack-search" type="search" placeholder="Buscar mod…" />
