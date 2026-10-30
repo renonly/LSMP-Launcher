@@ -74,6 +74,9 @@ async function play(session, s, send) {
   // versão do Minecraft/Fabric vem do pack.json do repositório do modpack
   const mc = manifest.minecraft || cfg.MC_VERSION;
   const loader = manifest.loader?.version || cfg.FABRIC_LOADER;
+  const loaderType = manifest.loader?.type || "fabric";
+  if (loaderType !== "fabric")
+    throw new Error(`Este pack usa ${loaderType}, mas o launcher só suporta Fabric por enquanto.`);
 
   send("progress", { stage: "Verificando o Java", done: 0, total: 0 });
   checkJava(mc, s.javaPath);
