@@ -20,8 +20,8 @@
     "appId": "com.lsmp.launcher",
     "productName": "LSMP Launcher",
     "win": { "target": "nsis" },
-  "publish": [
-  { "provider": "github", "owner": "renonly", "repo": "LSMP-Launcher" }
-]   
+   "publish": [
+      { "provider": "github", "owner": "renonly", "repo": "LSMP-Launcher", "releaseType": "release" }
+    ]
   }
 }
