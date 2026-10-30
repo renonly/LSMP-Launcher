@@ -11,7 +11,13 @@
   <div class="veil" aria-hidden="true"></div>
 
   <header class="titlebar">
-    <span></span>
+    <nav id="tabs" class="tabs" hidden>
+      <button data-tab="play" class="active">Jogar</button>
+      <button data-tab="pack">Pack</button>
+      <button data-tab="console">Console</button>
+      <button data-tab="settings">Ajustes</button>
+    </nav>
+    <span id="tabs-spacer"></span>
     <div class="win-btns">
       <button data-win="min" aria-label="Minimizar">–</button>
       <button data-win="max" aria-label="Maximizar">▢</button>
@@ -37,29 +43,100 @@
     </section>
   </main>
 
-  <main id="home" class="screen home" hidden>
+  <main id="home" class="screen" hidden>
     <div class="user">
       <span id="who"></span>
       <button id="logout" class="ghost small">Sair</button>
     </div>
 
-    <section class="hero">
-      <h1 id="hero-name">Meu SMP</h1>
-      <p id="hero-sub"></p>
+    <!-- ===== JOGAR ===== -->
+    <section class="view play-view" data-view="play">
+      <div class="hero">
+        <h1 id="hero-name">Meu SMP</h1>
+        <p id="hero-sub"></p>
+        <div class="chips">
+          <button id="srv" class="chip" title="Clique para copiar o IP">
+            <i id="srv-dot" class="dot"></i><span id="srv-text">Verificando servidor…</span>
+          </button>
+          <span id="pack-chip" class="chip static">Pack…</span>
+        </div>
+      </div>
+
+      <div class="dock">
+        <div class="progress" id="progress" hidden>
+          <div class="progress-text"><span id="stage"></span><span id="file"></span></div>
+          <div class="bar"><div id="bar-fill"></div></div>
+        </div>
+        <p id="game-error" class="error" role="alert"></p>
+        <div class="row">
+          <label class="ram" for="ram">
+            <span>Memória <b id="ram-val">4</b> GB</span>
+            <input id="ram" type="range" min="2" max="16" step="1" value="4" />
+          </label>
+          <button id="play" class="solid big">Jogar</button>
+        </div>
+      </div>
     </section>
 
-    <section class="dock">
-      <div class="progress" id="progress" hidden>
-        <div class="progress-text"><span id="stage"></span><span id="file"></span></div>
-        <div class="bar"><div id="bar-fill"></div></div>
+    <!-- ===== PACK ===== -->
+    <section class="view panel" data-view="pack" hidden>
+      <h2>Pack de mods</h2>
+      <div class="stats" id="pack-stats"></div>
+      <p id="pack-error" class="error" role="alert"></p>
+      <div class="toolbar">
+        <input id="pack-search" type="search" placeholder="Buscar mod…" />
+        <button id="repair" class="outline">Verificar e reparar arquivos</button>
+        <button class="outline" data-open-dir>Abrir pasta do jogo</button>
       </div>
-      <p id="game-error" class="error" role="alert"></p>
-      <div class="row">
-        <label class="ram" for="ram">
-          <span>Memória <b id="ram-val">4</b> GB</span>
-          <input id="ram" type="range" min="2" max="16" step="1" value="4" />
+      <div class="list" id="pack-list"></div>
+    </section>
+
+    <!-- ===== CONSOLE ===== -->
+    <section class="view panel console-view" data-view="console" hidden>
+      <div class="panel-head">
+        <h2>Console</h2>
+        <div>
+          <button id="log-copy" class="ghost small">Copiar</button>
+          <button id="log-clear" class="ghost small">Limpar</button>
+        </div>
+      </div>
+      <pre id="log" class="log"></pre>
+    </section>
+
+    <!-- ===== AJUSTES ===== -->
+    <section class="view panel" data-view="settings" hidden>
+      <h2>Ajustes</h2>
+
+      <div class="group">
+        <h3>Memória</h3>
+        <label class="ram wide" for="s-ram">
+          <span>RAM para o jogo: <b id="s-ram-val">4</b> GB <small id="s-ram-hint"></small></span>
+          <input id="s-ram" type="range" min="2" max="16" step="1" value="4" />
         </label>
-        <button id="play" class="solid big">Jogar</button>
+      </div>
+
+      <div class="group">
+        <h3>Tela</h3>
+        <label class="switch"><input id="s-fullscreen" type="checkbox" /><span>Abrir em tela cheia</span></label>
+        <div class="two">
+          <label>Largura<input id="s-width" type="number" min="0" placeholder="Auto" /></label>
+          <label>Altura<input id="s-height" type="number" min="0" placeholder="Auto" /></label>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>Java</h3>
+        <label>Caminho do Java (opcional)<input id="s-java" placeholder="Automático, usa o Java do sistema" /></label>
+        <label>Argumentos extras da JVM (opcional)<input id="s-jvm" placeholder="-XX:+UseG1GC" /></label>
+      </div>
+
+      <div class="group">
+        <h3>Launcher</h3>
+        <label class="switch"><input id="s-min" type="checkbox" /><span>Minimizar o launcher quando o jogo abrir</span></label>
+        <div class="toolbar">
+          <button class="outline" data-open-dir>Abrir pasta do jogo</button>
+        </div>
+        <p class="note" id="about"></p>
       </div>
     </section>
   </main>

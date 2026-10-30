@@ -73,7 +73,6 @@ button.ghost:hover { color: var(--text); }
 button.ghost.small { font-size: 13px; }
 
 /* home */
-.home { display: flex; flex-direction: column; justify-content: space-between; padding: 54px 56px 40px; }
 .user { position: absolute; top: 46px; right: 56px; display: flex; align-items: center; gap: 6px; color: var(--muted); }
 .hero { margin-top: 12vh; max-width: 560px; }
 .hero h1 { margin: 0; font-size: 64px; line-height: 1; font-weight: 600; letter-spacing: -.035em; }
@@ -106,7 +105,7 @@ button.ghost.small { font-size: 13px; }
   padding: 6px 14px; font: inherit; font-weight: 600; cursor: pointer;
 }
 
-@media (max-width: 860px) { .hero h1 { font-size: 48px; } .home { padding: 54px 32px 32px; } .user { right: 32px; } }
+@media (max-width: 860px) { .hero h1 { font-size: 48px; } .user { right: 32px; } }
 
 /* ---------- animações ---------- */
 @keyframes screen-in { from { opacity: 0; transform: translateY(10px) scale(.992); } to { opacity: 1; transform: none; } }
@@ -121,9 +120,9 @@ button.ghost.small { font-size: 13px; }
 .screen:not([hidden]) { animation: screen-in .45s cubic-bezier(.2, .7, .2, 1) both; }
 
 /* Entrada da tela principal: título, subtítulo e a base chegam em sequência */
-.home:not([hidden]) .hero h1 { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .05s both; }
-.home:not([hidden]) .hero p  { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .15s both; }
-.home:not([hidden]) .dock    { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .28s both; }
+.play-view:not([hidden]) .hero h1 { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .05s both; }
+.play-view:not([hidden]) .hero p  { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .15s both; }
+.play-view:not([hidden]) .dock    { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .28s both; }
 
 .card.shake { animation: shake .4s ease; }
 .error:not(:empty) { animation: rise .25s ease both; }
@@ -139,3 +138,114 @@ button.solid.busy { animation: pulse 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ================= v0.3: abas, status, pack, console, ajustes ================= */
+
+/* barra superior com abas */
+.titlebar { align-items: stretch; }
+.tabs { display: flex; gap: 4px; padding: 6px 0 0 20px; -webkit-app-region: no-drag; }
+.tabs button {
+  background: none; border: 0; color: var(--muted); font: inherit; font-size: 14px;
+  padding: 0 14px; height: 26px; border-radius: 999px; cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.tabs button:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.tabs button.active { color: var(--text); background: rgba(255,255,255,.16); }
+#tabs-spacer { flex: 1; }
+
+/* a home agora tem várias "views" empilhadas */
+#home { padding-top: 0; }
+.view { position: absolute; inset: 0; }
+.view:not([hidden]) { animation: screen-in .3s cubic-bezier(.2, .7, .2, 1) both; }
+.play-view { display: flex; flex-direction: column; justify-content: space-between; padding: 54px 56px 40px; }
+.user { z-index: 3; }
+.screen:not([hidden]) .view:not([hidden]) { animation-delay: 0s; }
+
+/* chips de status */
+.chips { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.chip {
+  display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  color: var(--text); font: inherit; font-size: 13px; cursor: pointer;
+}
+.chip.static { cursor: default; color: var(--muted); }
+button.chip:hover { border-color: rgba(255,255,255,.4); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #8b93a7; }
+.dot.online { background: #6ee7a0; box-shadow: 0 0 8px rgba(110, 231, 160, .7); }
+.dot.offline { background: #ff8a8a; }
+.dot.loading { animation: pulse 1.2s ease-in-out infinite; }
+
+/* painéis (Pack, Console, Ajustes) */
+.panel { padding: 84px 56px 28px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+.panel h2 { margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -.02em; }
+.panel h3 { margin: 0 0 10px; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.panel-head { display: flex; align-items: center; justify-content: space-between; }
+.note { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+small { color: var(--muted); font-weight: 400; }
+
+.panel::-webkit-scrollbar, .list::-webkit-scrollbar, .log::-webkit-scrollbar { width: 8px; }
+.panel::-webkit-scrollbar-thumb, .list::-webkit-scrollbar-thumb, .log::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,.2); border-radius: 99px;
+}
+
+button.outline {
+  background: rgba(255,255,255,.06); color: var(--text); border: 1px solid var(--line);
+  border-radius: 999px; font: inherit; font-size: 13px; padding: 8px 16px; cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+button.outline:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.4); }
+
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.toolbar input[type="search"] { flex: 1; min-width: 160px; }
+input[type="search"], input[type="number"] {
+  background: rgba(255,255,255,.08); border: 1px solid var(--line); color: var(--text);
+  border-radius: 10px; padding: 9px 12px; font: inherit; user-select: text;
+}
+input[type="search"]:focus, input[type="number"]:focus { outline: none; border-color: rgba(255,255,255,.55); }
+
+/* Pack */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stat {
+  background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.stat span { display: block; font-size: 12px; color: var(--muted); }
+.stat b { font-size: 18px; font-weight: 600; }
+.list {
+  flex: 1; min-height: 120px; overflow-y: auto; border: 1px solid var(--line); border-radius: 14px;
+  background: var(--glass); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.item { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,.06); }
+.item:last-child { border-bottom: 0; }
+.item .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item .meta { color: var(--muted); font-size: 12px; }
+.item .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.1); color: var(--muted); }
+.item .tag.ok { background: rgba(110,231,160,.16); color: #9df0c0; }
+.item .tag.miss { background: rgba(255,180,180,.16); color: var(--danger); }
+.empty { padding: 28px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* Console */
+.console-view { padding-bottom: 28px; }
+.log {
+  flex: 1; margin: 0; min-height: 0; overflow: auto; padding: 14px 16px; user-select: text;
+  background: rgba(6, 8, 14, .55); border: 1px solid var(--line); border-radius: 14px;
+  font: 12px/1.55 "Cascadia Mono", Consolas, monospace; color: #d6dcea; white-space: pre-wrap; word-break: break-all;
+}
+
+/* Ajustes */
+.group {
+  display: grid; gap: 12px; padding: 18px 20px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 16px;
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+}
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ram.wide { width: 100%; }
+label.switch { display: flex; align-items: center; gap: 12px; color: var(--text); font-size: 14px; cursor: pointer; }
+label.switch input { appearance: none; width: 38px; height: 22px; border-radius: 99px; background: rgba(255,255,255,.2); position: relative; cursor: pointer; transition: background .15s; flex: none; }
+label.switch input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
+label.switch input:checked { background: #6ee7a0; }
+label.switch input:checked::after { transform: translateX(16px); background: #0f1a14; }
+label.switch input:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+
+@media (max-width: 860px) { .panel { padding: 84px 32px 24px; } .play-view { padding: 54px 32px 32px; } }
