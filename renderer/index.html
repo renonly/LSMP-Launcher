@@ -2,22 +2,15 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
-  <title>SMP Launcher</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: file:; style-src 'self'; script-src 'self'" />
+  <title>Launcher</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg" aria-hidden="true"></div>
+  <div class="bg" id="bg" aria-hidden="true"></div>
   <div class="veil" aria-hidden="true"></div>
 
   <header class="titlebar">
-    <nav id="tabs" class="tabs" hidden>
-      <button data-tab="play" class="active">Jogar</button>
-      <button data-tab="pack">Pack</button>
-      <button data-tab="console">Console</button>
-      <button data-tab="settings">Ajustes</button>
-    </nav>
-    <span id="tabs-spacer"></span>
     <div class="win-btns">
       <button data-win="min" aria-label="Minimizar">–</button>
       <button data-win="max" aria-label="Maximizar">▢</button>
@@ -25,13 +18,10 @@
     </div>
   </header>
 
-  <div id="update" class="update" hidden>
-    <span id="update-text"></span>
-    <button id="update-btn" hidden>Reiniciar e atualizar</button>
-  </div>
-
-  <main id="auth" class="screen center">
-    <section class="card" id="card">
+  <!-- ===== LOGIN ===== -->
+  <main id="auth" class="center">
+    <section class="card">
+      <img class="logo" src="logo.png" alt="" onerror="this.remove()" />
       <h1 id="auth-title">Entrar</h1>
       <p class="sub">Use a conta que você criou pro servidor.</p>
       <label>Usuário<input id="u" autocomplete="username" maxlength="16" /></label>
@@ -43,104 +33,217 @@
     </section>
   </main>
 
-  <main id="home" class="screen" hidden>
-    <div class="user">
-      <span id="who"></span>
-      <button id="logout" class="ghost small">Sair</button>
-    </div>
-
-    <!-- ===== JOGAR ===== -->
-    <section class="view play-view" data-view="play">
-      <div class="hero">
-        <h1 id="hero-name">Meu SMP</h1>
-        <p id="hero-sub"></p>
-        <div class="chips">
-          <button id="srv" class="chip" title="Clique para copiar o IP">
-            <i id="srv-dot" class="dot"></i><span id="srv-text">Verificando servidor…</span>
-          </button>
-          <span id="pack-chip" class="chip static">Pack…</span>
+  <!-- ===== APP ===== -->
+  <div id="app" class="app" hidden>
+    <aside class="side">
+      <div class="brand"><img class="logo-sm" src="logo.png" alt="" onerror="this.remove()" /><b id="brand-name">LSMP</b></div>
+      <nav id="nav">
+        <button data-tab="play" class="active"><i>▶</i>Início</button>
+        <button data-tab="news"><i>✦</i>Novidades</button>
+        <button data-tab="server"><i>◉</i>Servidor</button>
+        <button data-tab="pack"><i>▤</i>Mods</button>
+        <button data-tab="shots"><i>▣</i>Capturas</button>
+        <button data-tab="console"><i>›_</i>Console</button>
+        <button data-tab="settings"><i>⚙</i>Ajustes</button>
+      </nav>
+      <div class="side-bottom">
+        <div id="upd" class="upd" hidden>
+          <span id="upd-text"></span>
+          <div class="upd-bar" id="upd-bar" hidden><div id="upd-fill"></div></div>
+          <button id="upd-btn" class="solid small" hidden></button>
+        </div>
+        <div class="me">
+          <div class="avatar" id="avatar">?</div>
+          <div class="me-info"><b id="who">—</b><span id="me-sub">Jogador</span></div>
+          <button id="logout" class="ghost small" title="Sair da conta">Sair</button>
         </div>
       </div>
+    </aside>
 
-      <div class="dock">
-        <div class="progress" id="progress" hidden>
-          <div class="progress-text"><span id="stage"></span><span id="file"></span></div>
-          <div class="bar"><div id="bar-fill"></div></div>
+    <main class="content">
+      <!-- INÍCIO -->
+      <section class="view" data-view="play">
+        <div class="hero">
+          <h1 id="hero-name">LSMP</h1>
+          <p id="hero-sub"></p>
+          <div class="chips">
+            <button id="srv" class="chip" title="Clique para copiar o IP"><i id="srv-dot" class="dot"></i><span id="srv-text">Verificando…</span></button>
+            <span id="pack-chip" class="chip static">Pack…</span>
+            <span id="mc-chip" class="chip static"></span>
+          </div>
         </div>
-        <p id="game-error" class="error" role="alert"></p>
-        <div class="row">
-          <label class="ram" for="ram">
-            <span>Memória <b id="ram-val">4</b> GB</span>
-            <input id="ram" type="range" min="2" max="16" step="1" value="4" />
-          </label>
-          <button id="play" class="solid big">Jogar</button>
+
+        <div class="tiles">
+          <div class="tile"><span>Jogadores online</span><b id="t-players">—</b></div>
+          <div class="tile"><span>Ping</span><b id="t-ping">—</b></div>
+          <div class="tile"><span>Tempo de jogo</span><b id="t-time">0h</b></div>
+          <div class="tile"><span>Última vez</span><b id="t-last">—</b></div>
         </div>
-      </div>
-    </section>
 
-    <!-- ===== PACK ===== -->
-    <section class="view panel" data-view="pack" hidden>
-      <h2>Pack de mods</h2>
-      <div class="stats" id="pack-stats"></div>
-      <p id="pack-error" class="error" role="alert"></p>
-      <div class="toolbar">
-        <input id="pack-search" type="search" placeholder="Buscar mod…" />
-        <button id="repair" class="outline">Verificar e reparar arquivos</button>
-        <button class="outline" data-open-dir>Abrir pasta do jogo</button>
-      </div>
-      <div class="list" id="pack-list"></div>
-    </section>
-
-    <!-- ===== CONSOLE ===== -->
-    <section class="view panel console-view" data-view="console" hidden>
-      <div class="panel-head">
-        <h2>Console</h2>
-        <div>
-          <button id="log-copy" class="ghost small">Copiar</button>
-          <button id="log-clear" class="ghost small">Limpar</button>
+        <div class="latest" id="latest" hidden>
+          <span class="tag" id="latest-tag"></span>
+          <div><b id="latest-title"></b><p id="latest-body"></p></div>
+          <button class="ghost small" data-goto="news">Ver tudo</button>
         </div>
-      </div>
-      <pre id="log" class="log"></pre>
-    </section>
 
-    <!-- ===== AJUSTES ===== -->
-    <section class="view panel" data-view="settings" hidden>
-      <h2>Ajustes</h2>
-
-      <div class="group">
-        <h3>Memória</h3>
-        <label class="ram wide" for="s-ram">
-          <span>RAM para o jogo: <b id="s-ram-val">4</b> GB <small id="s-ram-hint"></small></span>
-          <input id="s-ram" type="range" min="2" max="16" step="1" value="4" />
-        </label>
-      </div>
-
-      <div class="group">
-        <h3>Tela</h3>
-        <label class="switch"><input id="s-fullscreen" type="checkbox" /><span>Abrir em tela cheia</span></label>
-        <div class="two">
-          <label>Largura<input id="s-width" type="number" min="0" placeholder="Auto" /></label>
-          <label>Altura<input id="s-height" type="number" min="0" placeholder="Auto" /></label>
+        <div class="dock">
+          <div class="progress" id="progress" hidden>
+            <div class="progress-text"><span id="stage"></span><span id="file"></span></div>
+            <div class="bar"><div id="bar-fill"></div></div>
+          </div>
+          <p id="game-error" class="error" role="alert"></p>
+          <div class="row">
+            <label class="ram" for="ram"><span>Memória <b id="ram-val">4</b> GB</span><input id="ram" type="range" min="2" max="16" step="1" value="4" /></label>
+            <button id="play-repair" class="outline" title="Baixa tudo de novo e confere os arquivos">Reparar</button>
+            <button id="stop" class="danger big" hidden>Fechar jogo</button>
+            <button id="play" class="solid big">Jogar</button>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="group">
-        <h3>Java</h3>
-        <label>Caminho do Java (opcional)<input id="s-java" placeholder="Automático, usa o Java do sistema" /></label>
-        <label>Argumentos extras da JVM (opcional)<input id="s-jvm" placeholder="-XX:+UseG1GC" /></label>
-      </div>
+      <!-- NOVIDADES -->
+      <section class="view panel" data-view="news" hidden>
+        <h2>Novidades</h2>
+        <div id="news-list" class="stack"></div>
+      </section>
 
-      <div class="group">
-        <h3>Launcher</h3>
-        <label class="switch"><input id="s-min" type="checkbox" /><span>Minimizar o launcher quando o jogo abrir</span></label>
+      <!-- SERVIDOR -->
+      <section class="view panel" data-view="server" hidden>
+        <div class="panel-head"><h2>Servidor</h2><button id="srv-refresh" class="outline small">Atualizar</button></div>
+        <div class="srv-card">
+          <div class="srv-top"><i id="s-dot" class="dot big"></i><div><b id="s-state">—</b><p id="s-motd"></p></div></div>
+          <div class="kv">
+            <div><span>Endereço</span><b id="s-addr"></b></div>
+            <div><span>Versão</span><b id="s-ver">—</b></div>
+            <div><span>Jogadores</span><b id="s-players">—</b></div>
+            <div><span>Ping</span><b id="s-ping">—</b></div>
+          </div>
+          <div class="bar"><div id="s-fill"></div></div>
+          <div class="toolbar"><button id="s-copy" class="outline">Copiar IP</button></div>
+        </div>
+        <h3>Histórico de ping</h3>
+        <div class="spark" id="spark"></div>
+      </section>
+
+      <!-- MODS -->
+      <section class="view panel" data-view="pack" hidden>
+        <h2>Pack de mods</h2>
+        <div class="stats" id="pack-stats"></div>
+        <p id="pack-error" class="error" role="alert"></p>
         <div class="toolbar">
-          <button class="outline" data-open-dir>Abrir pasta do jogo</button>
+          <input id="pack-search" type="search" placeholder="Buscar mod…" />
+          <select id="pack-filter"><option value="all">Todos</option><option value="ok">Instalados</option><option value="miss">Faltando</option></select>
+          <select id="pack-sort"><option value="name">Nome</option><option value="size">Tamanho</option></select>
+          <button id="repair" class="outline">Verificar e reparar</button>
+          <button class="outline" data-open-dir>Pasta do jogo</button>
         </div>
-        <p class="note" id="about"></p>
-      </div>
-    </section>
-  </main>
+        <div class="list" id="pack-list"></div>
+      </section>
 
+      <!-- CAPTURAS -->
+      <section class="view panel" data-view="shots" hidden>
+        <div class="panel-head"><h2>Capturas de tela</h2><div><button id="shots-refresh" class="outline small">Atualizar</button> <button id="shots-open" class="outline small">Abrir pasta</button></div></div>
+        <p class="note" id="shots-empty" hidden>Nenhuma captura ainda. Aperte F2 no jogo para tirar uma.</p>
+        <div class="grid" id="shots-grid"></div>
+      </section>
+
+      <!-- CONSOLE -->
+      <section class="view panel console-view" data-view="console" hidden>
+        <div class="panel-head"><h2>Console</h2>
+          <div><button id="log-copy" class="ghost small">Copiar</button> <button id="log-clear" class="ghost small">Limpar</button></div>
+        </div>
+        <pre id="log" class="log"></pre>
+      </section>
+
+      <!-- AJUSTES -->
+      <section class="view panel" data-view="settings" hidden>
+        <h2>Ajustes</h2>
+        <div class="subtabs" id="subtabs">
+          <button data-sub="game" class="active">Jogo</button>
+          <button data-sub="java">Java</button>
+          <button data-sub="look">Aparência</button>
+          <button data-sub="launcher">Launcher</button>
+        </div>
+
+        <div class="sub-pane" data-pane="game">
+          <div class="group">
+            <h3>Memória</h3>
+            <label class="ram wide" for="s-ram"><span>RAM para o jogo: <b id="s-ram-val">4</b> GB <small id="s-ram-hint"></small></span>
+              <input id="s-ram" type="range" min="2" max="16" step="1" value="4" /></label>
+          </div>
+          <div class="group">
+            <h3>Tela</h3>
+            <label class="switch"><input id="s-fullscreen" type="checkbox" /><span>Abrir em tela cheia</span></label>
+            <div class="two">
+              <label>Largura<input id="s-width" type="number" min="0" placeholder="Auto" /></label>
+              <label>Altura<input id="s-height" type="number" min="0" placeholder="Auto" /></label>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Ao abrir o jogo</h3>
+            <label>O que fazer com o launcher
+              <select id="s-onlaunch"><option value="minimize">Minimizar</option><option value="keep">Manter aberto</option><option value="quit">Fechar o launcher</option></select>
+            </label>
+          </div>
+        </div>
+
+        <div class="sub-pane" data-pane="java" hidden>
+          <div class="group">
+            <h3>Java</h3>
+            <label>Caminho do Java (opcional)
+              <div class="inline"><input id="s-java" placeholder="Automático, usa o Java do sistema" />
+                <button id="java-browse" class="outline">Procurar…</button>
+                <button id="java-detect" class="outline">Detectar</button></div>
+            </label>
+            <div id="java-list" class="chips-list"></div>
+          </div>
+          <div class="group">
+            <h3>Desempenho</h3>
+            <label>Otimização da JVM
+              <select id="s-preset"><option value="g1">Recomendado (G1GC otimizado)</option><option value="none">Nenhuma</option></select>
+            </label>
+            <label>Argumentos extras da JVM (opcional)<input id="s-jvm" placeholder="-Dfoo=bar" /></label>
+          </div>
+        </div>
+
+        <div class="sub-pane" data-pane="look" hidden>
+          <div class="group">
+            <h3>Cor de destaque</h3>
+            <div class="swatches" id="swatches"></div>
+            <label class="color">Personalizada<input id="s-accent" type="color" /></label>
+          </div>
+          <div class="group">
+            <h3>Imagem de fundo</h3>
+            <div class="toolbar"><button id="bg-choose" class="outline">Escolher imagem…</button><button id="bg-clear" class="outline">Remover</button></div>
+            <label class="ram wide" for="s-blur"><span>Desfoque: <b id="s-blur-val">6</b> px</span><input id="s-blur" type="range" min="0" max="30" /></label>
+            <label class="ram wide" for="s-dim"><span>Escurecer: <b id="s-dim-val">55</b>%</span><input id="s-dim" type="range" min="0" max="90" /></label>
+          </div>
+        </div>
+
+        <div class="sub-pane" data-pane="launcher" hidden>
+          <div class="group">
+            <h3>Geral</h3>
+            <label class="switch"><input id="s-startup" type="checkbox" /><span>Abrir o launcher ao ligar o computador</span></label>
+            <div class="toolbar">
+              <button class="outline" data-open-dir>Pasta do jogo</button>
+              <button id="open-data" class="outline">Pasta de dados</button>
+              <button id="open-log" class="outline">Ver log do launcher</button>
+              <button id="reset-settings" class="outline">Restaurar padrões</button>
+            </div>
+          </div>
+          <div class="group">
+            <h3>Atualizações do launcher</h3>
+            <p class="note" id="about"></p>
+            <p class="note" id="upd-detail"></p>
+            <div class="toolbar"><button id="upd-check" class="outline">Verificar atualizações</button></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="lightbox" class="lightbox" hidden><img id="lb-img" alt="" /><div class="lb-bar"><button id="lb-show" class="outline small">Mostrar na pasta</button><button id="lb-close" class="outline small">Fechar</button></div></div>
+  <div id="toast" class="toast" hidden></div>
   <script src="app.js"></script>
 </body>
 </html>

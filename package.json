@@ -1,6 +1,6 @@
 {
   "name": "lsmp-launcher",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "LSMP",
   "main": "main.js",
   "author": "renonly",
@@ -19,7 +19,9 @@
   "build": {
     "appId": "com.lsmp.launcher",
     "productName": "LSMP Launcher",
-    "directories": { "buildResources": "build" },
+    "directories": {
+      "buildResources": "build"
+    },
     "win": {
       "target": "nsis",
       "icon": "build/icon.ico"
@@ -40,7 +42,12 @@
       "artifactName": "LSMP-Launcher-Setup-${version}.${ext}"
     },
     "publish": [
-      { "provider": "github", "owner": "renonly", "repo": "LSMP-Launcher", "releaseType": "release" }
+      {
+        "provider": "github",
+        "owner": "renonly",
+        "repo": "LSMP-Launcher",
+        "releaseType": "release"
+      }
     ]
   }
 }

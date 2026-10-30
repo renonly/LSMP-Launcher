@@ -43,6 +43,37 @@ function javaMajor(javaPath) {
   return m[1] === "1" ? Number(m[2]) : Number(m[1]);
 }
 
+const PRESETS = {
+  none: [],
+  g1: ["-XX:+UseG1GC", "-XX:MaxGCPauseMillis=100", "-XX:+UnlockExperimentalVMOptions",
+       "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1ReservedPercent=20",
+       "-XX:G1HeapRegionSize=32M"],
+};
+
+// Procura Javas instalados nos lugares comuns
+function detectJava() {
+  const found = new Map();
+  const add = (p) => {
+    if (!p || found.has(p) || !fs.existsSync(p)) return;
+    const major = javaMajor(p);
+    if (major) found.set(p, { path: p, major });
+  };
+  const exe = process.platform === "win32" ? "java.exe" : "java";
+  if (process.env.JAVA_HOME) add(path.join(process.env.JAVA_HOME, "bin", exe));
+  const roots = process.platform === "win32"
+    ? ["C:\\Program Files\\Eclipse Adoptium", "C:\\Program Files\\Java", "C:\\Program Files\\Microsoft",
+       "C:\\Program Files\\Zulu", "C:\\Program Files\\BellSoft", "C:\\Program Files\\Amazon Corretto"]
+    : ["/usr/lib/jvm", "/Library/Java/JavaVirtualMachines"];
+  for (const r of roots) {
+    if (!fs.existsSync(r)) continue;
+    for (const d of fs.readdirSync(r)) {
+      add(path.join(r, d, "bin", exe));
+      add(path.join(r, d, "Contents", "Home", "bin", exe));
+    }
+  }
+  return [...found.values()].sort((a, b) => b.major - a.major);
+}
+
 function checkJava(mc, javaPath) {
   const need = requiredJava(mc);
   const have = javaMajor(javaPath);
@@ -110,7 +141,8 @@ async function play(session, s, send) {
     // customArgs: [`-javaagent:${path.join(root, "authlib-injector.jar")}=${cfg.API_URL}`],
   };
   if (s.javaPath) opts.javaPath = s.javaPath;
-  if (s.jvmArgs) opts.customArgs = s.jvmArgs.split(/\s+/).filter(Boolean);
+  const extra = [...(PRESETS[s.jvmPreset] || []), ...s.jvmArgs.split(/\s+/).filter(Boolean)];
+  if (extra.length) opts.customArgs = extra;
   if (s.fullscreen) opts.window = { fullscreen: true };
   else if (s.width && s.height) opts.window = { width: s.width, height: s.height };
 
@@ -119,6 +151,7 @@ async function play(session, s, send) {
   if (!proc) throw new Error("O Minecraft não conseguiu iniciar. Veja a aba Console.");
   send("progress", { stage: "Jogo iniciado", done: 1, total: 1 });
   send("started");
+  return proc;
 }
 
-module.exports = { play, syncOnly, gameDir };
+module.exports = { play, syncOnly, gameDir, detectJava };

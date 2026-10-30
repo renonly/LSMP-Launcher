@@ -1,310 +1,347 @@
 const $ = (id) => document.getElementById(id);
-let mode = "login";
-let busy = false;          // jogo rodando ou pack sendo verificado
-let hostLabel = "";
-let settings = null;
+const api = window.api;
+const state = { cfg: null, s: null, session: null, status: null, pings: [], busy: false, running: false, pack: null, shot: null };
+const COLORS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#f87171", "#2dd4bf"];
 
-/* ---------- janela / telas ---------- */
-document.querySelectorAll("[data-win]").forEach((b) =>
-  b.addEventListener("click", () => api.win(b.dataset.win))
-);
-
-function show(screen) {
-  $("auth").hidden = screen !== "auth";
-  $("home").hidden = screen !== "home";
-  $("tabs").hidden = screen !== "home";
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.id); toast.id = setTimeout(() => (t.hidden = true), 2600);
 }
+const fmtSize = (b) => (b > 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(b / 1024)) + " KB");
+const fmtDate = (d) => new Date(d).toLocaleDateString("pt-BR");
+const fmtHours = (ms) => { const m = Math.floor(ms / 60000); return m < 60 ? `${m} min` : `${(m / 60).toFixed(1).replace(".0", "")} h`; };
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
-function showTab(name) {
-  document.querySelectorAll("[data-view]").forEach((v) => (v.hidden = v.dataset.view !== name));
-  document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
-  if (name === "pack") loadPack();
-  if (name === "console") scrollLog(true);
+// ---------- navegação ----------
+function go(tab) {
+  document.querySelectorAll("#nav button").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+  document.querySelectorAll(".view").forEach((v) => (v.hidden = v.dataset.view !== tab));
+  if (tab === "pack") loadPack();
+  if (tab === "news") loadNews();
+  if (tab === "shots") loadShots();
+  if (tab === "server") refreshStatus();
+  if (tab === "play") loadStats();
 }
-document.querySelectorAll("[data-tab]").forEach((b) =>
-  b.addEventListener("click", () => showTab(b.dataset.tab))
-);
+$("nav").onclick = (e) => { const b = e.target.closest("button"); if (b) go(b.dataset.tab); };
+document.addEventListener("click", (e) => {
+  const g = e.target.closest("[data-goto]"); if (g) go(g.dataset.goto);
+  const w = e.target.closest("[data-win]"); if (w) api.win(w.dataset.win);
+  if (e.target.closest("[data-open-dir]")) api.openGameDir();
+});
+$("subtabs").onclick = (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  document.querySelectorAll("#subtabs button").forEach((x) => x.classList.toggle("active", x === b));
+  document.querySelectorAll(".sub-pane").forEach((p) => (p.hidden = p.dataset.pane !== b.dataset.sub));
+};
 
-function shake(el) {
-  el.classList.remove("shake");
-  void el.offsetWidth; // reinicia a animação
-  el.classList.add("shake");
-}
-
-const fmtBytes = (n) =>
-  n >= 1024 ** 2 ? `${(n / 1024 ** 2).toFixed(1)} MB` : n >= 1024 ? `${Math.round(n / 1024)} KB` : `${n} B`;
-
-/* ---------- login / cadastro ---------- */
-function setMode(m) {
-  mode = m;
-  const reg = m === "register";
+// ---------- login ----------
+let registering = false;
+function setMode(reg) {
+  registering = reg;
   $("auth-title").textContent = reg ? "Criar conta" : "Entrar";
   $("auth-submit").textContent = reg ? "Criar conta" : "Entrar";
   $("auth-toggle").textContent = reg ? "Já tenho conta" : "Criar uma conta";
-  $("p2-wrap").hidden = !reg;
-  $("auth-error").textContent = "";
+  $("p2-wrap").hidden = !reg; $("auth-error").textContent = "";
 }
-
+$("auth-toggle").onclick = () => setMode(!registering);
 async function submitAuth() {
-  const u = $("u").value.trim();
-  const p = $("p").value;
-  const err = (t) => {
-    $("auth-error").textContent = t;
-    if (t) shake($("card"));
-  };
-  err("");
-  if (!/^[A-Za-z0-9_]{3,16}$/.test(u)) return err("Usuário: 3 a 16 letras, números ou _.");
-  if (p.length < 8) return err("A senha precisa ter pelo menos 8 caracteres.");
-  if (mode === "register" && p !== $("p2").value) return err("As senhas não são iguais.");
-
-  const btn = $("auth-submit");
-  btn.disabled = true;
-  btn.classList.add("busy");
-  const r = await (mode === "register" ? api.register(u, p) : api.login(u, p));
-  btn.disabled = false;
-  btn.classList.remove("busy");
-  if (!r.ok) return err(r.error);
+  const u = $("u").value.trim(), p = $("p").value;
+  $("auth-error").textContent = "";
+  if (!u || !p) return ($("auth-error").textContent = "Preencha usuário e senha.");
+  if (registering && p !== $("p2").value) return ($("auth-error").textContent = "As senhas não são iguais.");
+  $("auth-submit").disabled = true;
+  const r = await (registering ? api.register(u, p) : api.login(u, p));
+  $("auth-submit").disabled = false;
+  if (!r.ok) return ($("auth-error").textContent = r.error);
   $("p").value = $("p2").value = "";
-  enterHome(r.data);
+  enter(r.data);
+}
+$("auth-submit").onclick = submitAuth;
+["u", "p", "p2"].forEach((id) => $(id).addEventListener("keydown", (e) => e.key === "Enter" && submitAuth()));
+$("logout").onclick = async () => { await api.logout(); state.session = null; $("app").hidden = true; $("auth").hidden = false; };
+
+function enter(session) {
+  state.session = session;
+  $("auth").hidden = true; $("app").hidden = false;
+  $("who").textContent = session.username;
+  $("avatar").textContent = session.username[0].toUpperCase();
+  go("play"); refreshStatus(); loadNews(true); loadPackChip();
 }
 
-let statusTimer = null;
-function enterHome(s) {
-  $("who").textContent = s.username;
-  show("home");
-  showTab("play");
-  refreshStatus();
-  refreshPackChip();
-  clearInterval(statusTimer);
-  statusTimer = setInterval(refreshStatus, 30000);
+// ---------- aparência ----------
+function applyLook(s) {
+  const r = document.documentElement.style;
+  r.setProperty("--accent", s.accent);
+  r.setProperty("--blur", s.bgBlur + "px");
+  r.setProperty("--dim", s.bgDim / 100);
+  $("bg").style.backgroundImage = s.bgUrl ? `url("${s.bgUrl}")` : "";
+  document.querySelectorAll(".swatches button").forEach((b) => b.classList.toggle("on", b.dataset.c === s.accent.toLowerCase()));
 }
 
-/* ---------- status do servidor ---------- */
+// ---------- status do servidor ----------
 async function refreshStatus() {
-  const dot = $("srv-dot"), text = $("srv-text");
-  const s = await api.status();
-  if (s.online) {
-    dot.className = "dot online";
-    text.textContent = `${hostLabel} · ${s.players}/${s.max} online · ${s.ping} ms`;
-  } else {
-    dot.className = "dot offline";
-    text.textContent = `${hostLabel} · offline`;
+  const st = await api.status();
+  state.status = st;
+  state.pings.push(st.online ? st.ping : 0);
+  state.pings = state.pings.slice(-40);
+  const addr = `${state.cfg.host}:${state.cfg.port}`;
+  $("srv-dot").className = "dot " + (st.online ? "on" : "off");
+  $("srv-text").textContent = st.online ? `Online · ${st.players}/${st.max} jogadores` : "Servidor offline";
+  $("t-players").textContent = st.online ? `${st.players}/${st.max}` : "—";
+  $("t-ping").textContent = st.online ? st.ping + " ms" : "—";
+  $("s-dot").className = "dot big " + (st.online ? "on" : "off");
+  $("s-state").textContent = st.online ? "Online" : "Offline";
+  $("s-motd").textContent = st.online ? st.motd : "Não foi possível conectar ao servidor.";
+  $("s-addr").textContent = addr;
+  $("s-ver").textContent = st.online ? st.version : "—";
+  $("s-players").textContent = st.online ? `${st.players} / ${st.max}` : "—";
+  $("s-ping").textContent = st.online ? st.ping + " ms" : "—";
+  $("s-fill").style.width = st.online && st.max ? Math.min(100, (st.players / st.max) * 100) + "%" : "0";
+  const max = Math.max(50, ...state.pings);
+  $("spark").replaceChildren(...state.pings.map((p) => {
+    const i = document.createElement("i");
+    if (!p) i.className = "x";
+    i.style.height = (p ? Math.max(4, (p / max) * 100) : 4) + "%";
+    i.title = p ? p + " ms" : "offline";
+    return i;
+  }));
+}
+const copyIp = () => { api.copy(`${state.cfg.host}:${state.cfg.port}`); toast("IP copiado!"); };
+$("srv").onclick = copyIp; $("s-copy").onclick = copyIp;
+$("srv-refresh").onclick = refreshStatus;
+
+async function loadStats() {
+  const st = await api.stats();
+  $("t-time").textContent = fmtHours(st.playMs);
+  $("t-last").textContent = st.last ? fmtDate(st.last) : "—";
+}
+
+// ---------- novidades ----------
+async function loadNews(small) {
+  const list = await api.news();
+  if (list.length) {
+    $("latest").hidden = false;
+    $("latest-tag").textContent = list[0].tag;
+    $("latest-title").textContent = list[0].name;
+    $("latest-body").textContent = (list[0].body.replace(/[#*`>-]/g, "").split("\n").find((l) => l.trim()) || "").trim();
   }
-}
-$("srv").addEventListener("click", () => {
-  api.copy(hostLabel);
-  const text = $("srv-text"), old = text.textContent;
-  text.textContent = "IP copiado!";
-  setTimeout(() => (text.textContent = old), 1400);
-});
-
-/* ---------- jogar ---------- */
-function setProgress({ stage, done, total, file }) {
-  $("progress").hidden = false;
-  $("stage").textContent = stage;
-  $("file").textContent = file || "";
-  $("bar-fill").style.width = total ? `${Math.min(100, (done / total) * 100)}%` : "0%";
-}
-
-function setBusy(on, label) {
-  busy = on;
-  $("play").disabled = on;
-  $("play").classList.toggle("busy", on);
-  $("play").textContent = on ? label || "Preparando…" : "Jogar";
-  $("repair").disabled = on;
+  if (small) return;
+  const box = $("news-list");
+  if (!list.length) { box.innerHTML = ""; const p = document.createElement("p"); p.className = "note"; p.textContent = "Sem novidades por enquanto."; return box.append(p); }
+  box.replaceChildren(...list.map((n) => {
+    const d = document.createElement("div"); d.className = "news-item";
+    const h = document.createElement("header");
+    const t = document.createElement("span"); t.className = "tag"; t.textContent = n.tag;
+    const b = document.createElement("b"); b.textContent = n.name;
+    const dt = document.createElement("span"); dt.className = "d"; dt.textContent = fmtDate(n.date);
+    h.append(t, b, dt);
+    const pre = document.createElement("pre"); pre.textContent = n.body || "Sem descrição.";
+    d.append(h, pre); return d;
+  }));
 }
 
-async function play() {
-  $("game-error").textContent = "";
-  setBusy(true, "Preparando…");
-  const r = await api.play();
-  if (!r.ok) {
-    $("game-error").textContent = r.error;
-    $("progress").hidden = true;
-    setBusy(false);
-  }
-}
-
-api.on("progress", setProgress);
-api.on("started", () => setBusy(true, "Jogando…"));
-api.on("closed", (code) => {
-  setBusy(false);
-  $("progress").hidden = true;
-  if (code) $("game-error").textContent = `O jogo fechou com erro (código ${code}). Veja a aba Console.`;
-});
-
-$("play").addEventListener("click", play);
-
-/* ---------- pack ---------- */
-let packFiles = [];
-
-async function refreshPackChip() {
+// ---------- pack ----------
+async function loadPackChip() {
   const r = await api.packInfo();
-  $("pack-chip").textContent = r.ok
-    ? `Pack ${r.data.version} · ${r.data.files.length} arquivos${r.data.offline ? " (offline)" : ""}`
-    : "Pack não publicado";
+  if (r.ok) {
+    state.pack = r.data;
+    $("pack-chip").textContent = `Pack v${r.data.version}${r.data.offline ? " (offline)" : ""}`;
+    $("mc-chip").textContent = `Minecraft ${r.data.minecraft} · ${r.data.loader?.type || "fabric"}`;
+  } else { $("pack-chip").textContent = "Pack indisponível"; $("mc-chip").textContent = `Minecraft ${state.cfg.mc}`; }
+  return r;
 }
-
 async function loadPack() {
-  $("pack-error").textContent = "";
-  const r = await api.packInfo();
-  if (!r.ok) {
-    $("pack-error").textContent = r.error;
-    packFiles = [];
-    $("pack-stats").replaceChildren();
-    renderPackList();
-    return;
-  }
-  const d = r.data;
-  packFiles = d.files;
-  const total = d.files.reduce((n, f) => n + f.size, 0);
-  const mods = d.files.filter((f) => f.path.startsWith("mods/")).length;
-  const stats = [
-    ["Versão do pack", d.version],
-    ["Minecraft", d.minecraft || "?"],
-    ["Fabric", d.loader?.version || "?"],
-    ["Mods", String(mods)],
-    ["Tamanho", fmtBytes(total)],
-  ];
-  $("pack-stats").replaceChildren(
-    ...stats.map(([k, v]) => {
-      const el = document.createElement("div");
-      el.className = "stat";
-      const s = document.createElement("span"); s.textContent = k;
-      const b = document.createElement("b"); b.textContent = v;
-      el.append(s, b);
-      return el;
-    })
-  );
-  renderPackList();
+  const r = await loadPackChip();
+  $("pack-error").textContent = r.ok ? "" : r.error;
+  if (r.ok) renderPack();
 }
-
-function renderPackList() {
-  const q = $("pack-search").value.trim().toLowerCase();
-  const rows = packFiles.filter((f) => f.path.toLowerCase().includes(q));
-  const list = $("pack-list");
-  if (!rows.length) {
-    const e = document.createElement("div");
-    e.className = "empty";
-    e.textContent = packFiles.length ? "Nada encontrado." : "Nenhum arquivo no pack.";
-    return list.replaceChildren(e);
-  }
-  list.replaceChildren(
-    ...rows.map((f) => {
-      const row = document.createElement("div");
-      row.className = "item";
-      const name = document.createElement("span"); name.className = "name"; name.textContent = f.path;
-      name.title = f.path;
-      const size = document.createElement("span"); size.className = "meta"; size.textContent = fmtBytes(f.size);
-      const tag = document.createElement("span");
-      tag.className = `tag ${f.installed ? "ok" : "miss"}`;
-      tag.textContent = f.installed ? "instalado" : "faltando";
-      row.append(name, size, tag);
-      return row;
-    })
-  );
+function renderPack() {
+  const p = state.pack; if (!p) return;
+  const q = $("pack-search").value.toLowerCase(), f = $("pack-filter").value, so = $("pack-sort").value;
+  const total = p.files.reduce((a, x) => a + x.size, 0), ok = p.files.filter((x) => x.installed).length;
+  $("pack-stats").replaceChildren(...[`${p.files.length} arquivos`, fmtSize(total), `${ok} instalados`, `v${p.version}`].map((t) => {
+    const c = document.createElement("span"); c.className = "chip static"; c.textContent = t; return c;
+  }));
+  let files = p.files.filter((x) => x.path.toLowerCase().includes(q) && (f === "all" || (f === "ok") === x.installed));
+  files.sort((a, b) => (so === "size" ? b.size - a.size : a.path.localeCompare(b.path)));
+  $("pack-list").replaceChildren(...files.map((x) => {
+    const d = document.createElement("div"); d.className = "item";
+    const n = document.createElement("span"); n.className = "n"; n.textContent = x.path; n.title = x.path;
+    const s = document.createElement("span"); s.className = "s"; s.textContent = fmtSize(x.size);
+    const k = document.createElement("span"); k.className = x.installed ? "ok" : "miss"; k.textContent = x.installed ? "✓" : "✗";
+    d.append(n, s, k); return d;
+  }));
 }
-$("pack-search").addEventListener("input", renderPackList);
+["pack-search", "pack-filter", "pack-sort"].forEach((id) => $(id).addEventListener("input", renderPack));
 
-$("repair").addEventListener("click", async () => {
-  if (busy) return;
-  showTab("play");
-  $("game-error").textContent = "";
-  setBusy(true, "Verificando…");
-  const r = await api.sync(true);
+async function runSync(force) {
+  if (state.busy) return;
+  setBusy(true); $("game-error").textContent = ""; $("pack-error").textContent = "";
+  const r = await api.sync(force);
   setBusy(false);
-  if (!r.ok) {
-    $("progress").hidden = true;
-    $("game-error").textContent = r.error;
-  }
-  refreshPackChip();
-});
-
-document.querySelectorAll("[data-open-dir]").forEach((b) =>
-  b.addEventListener("click", () => api.openGameDir())
-);
-
-/* ---------- console ---------- */
-const MAX_LINES = 1500;
-const logEl = $("log");
-function scrollLog(force) {
-  const near = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 80;
-  if (force || near) logEl.scrollTop = logEl.scrollHeight;
+  if (!r.ok) { $("game-error").textContent = r.error; $("pack-error").textContent = r.error; }
+  else toast(force ? "Arquivos reparados!" : "Pack atualizado!");
+  loadPack();
 }
-api.on("log", (line) => {
-  logEl.append(line + "\n");
-  while (logEl.childNodes.length > MAX_LINES) logEl.removeChild(logEl.firstChild);
-  scrollLog(false);
-});
-$("log-clear").addEventListener("click", () => (logEl.textContent = ""));
-$("log-copy").addEventListener("click", () => api.copy(logEl.textContent));
+$("repair").onclick = () => runSync(true);
+$("play-repair").onclick = () => runSync(true);
 
-/* ---------- ajustes ---------- */
-function applySettingsToUI(s) {
-  settings = s;
+// ---------- capturas ----------
+async function loadShots() {
+  const list = await api.shots();
+  $("shots-empty").hidden = list.length > 0;
+  $("shots-grid").replaceChildren(...list.map((s) => {
+    const i = document.createElement("img"); i.src = s.url; i.loading = "lazy"; i.title = s.name;
+    i.onclick = () => { state.shot = s; $("lb-img").src = s.url; $("lightbox").hidden = false; };
+    return i;
+  }));
+}
+$("shots-refresh").onclick = loadShots; $("shots-open").onclick = () => api.openShots();
+$("lb-close").onclick = () => ($("lightbox").hidden = true);
+$("lightbox").onclick = (e) => { if (e.target.id === "lightbox") $("lightbox").hidden = true; };
+$("lb-show").onclick = () => state.shot && api.showShot(state.shot.path);
+
+// ---------- jogar ----------
+function setBusy(b) {
+  state.busy = b;
+  $("play").disabled = b || state.running; $("repair").disabled = b; $("play-repair").disabled = b;
+  $("progress").hidden = !b && !state.running;
+  if (!b && !state.running) $("bar-fill").style.width = "0";
+}
+function setRunning(r) {
+  state.running = r; $("play").hidden = r; $("stop").hidden = !r; $("play-repair").disabled = r;
+  $("play").disabled = state.busy || r;
+}
+api.on("progress", (p) => {
+  $("progress").hidden = false;
+  $("stage").textContent = p.stage; $("file").textContent = p.file || "";
+  $("bar-fill").style.width = p.total ? Math.min(100, (p.done / p.total) * 100) + "%" : "100%";
+});
+const logEl = $("log");
+api.on("log", (l) => {
+  logEl.append(l + "\n");
+  if (logEl.textContent.length > 300000) logEl.textContent = logEl.textContent.slice(-200000);
+  logEl.scrollTop = logEl.scrollHeight;
+});
+api.on("started", () => { setBusy(false); setRunning(true); $("progress").hidden = true; });
+api.on("closed", (code) => {
+  setRunning(false); setBusy(false); loadStats();
+  if (code) { $("game-error").textContent = `O jogo fechou com erro (código ${code}). Veja a aba Console.`; }
+});
+$("play").onclick = async () => {
+  if (state.busy || state.running) return;
+  $("game-error").textContent = ""; setBusy(true);
+  const r = await api.play();
+  if (!r.ok) { setBusy(false); $("game-error").textContent = r.error; }
+};
+$("stop").onclick = () => api.stop();
+$("log-copy").onclick = () => { api.copy(logEl.textContent); toast("Log copiado!"); };
+$("log-clear").onclick = () => (logEl.textContent = "");
+
+// ---------- ajustes ----------
+function fillSettings(s) {
+  state.s = s;
   $("ram").value = $("s-ram").value = s.ramGb;
   $("ram-val").textContent = $("s-ram-val").textContent = s.ramGb;
   $("s-fullscreen").checked = s.fullscreen;
-  $("s-width").value = s.width || "";
-  $("s-height").value = s.height || "";
-  $("s-java").value = s.javaPath;
-  $("s-jvm").value = s.jvmArgs;
-  $("s-min").checked = s.minimizeOnLaunch;
-  $("s-width").disabled = $("s-height").disabled = s.fullscreen;
+  $("s-width").value = s.width || ""; $("s-height").value = s.height || "";
+  $("s-onlaunch").value = s.onLaunch; $("s-java").value = s.javaPath;
+  $("s-preset").value = s.jvmPreset; $("s-jvm").value = s.jvmArgs;
+  $("s-startup").checked = s.launchAtStartup; $("s-accent").value = s.accent;
+  $("s-blur").value = s.bgBlur; $("s-blur-val").textContent = s.bgBlur;
+  $("s-dim").value = s.bgDim; $("s-dim-val").textContent = s.bgDim;
+  applyLook(s);
 }
+const save = debounce(async (patch) => { fillSettingsLight(await api.setSettings(patch)); }, 250);
+function fillSettingsLight(s) { state.s = s; applyLook(s); }
+const set = (patch) => { Object.assign(state.s, patch); applyLook(state.s); save(patch); };
 
-async function saveSettings(patch) {
-  applySettingsToUI(await api.setSettings(patch));
+function ramSync(v) {
+  $("ram").value = $("s-ram").value = v; $("ram-val").textContent = $("s-ram-val").textContent = v;
+  set({ ramGb: Number(v) });
+  const rec = Math.max(2, Math.min(8, Math.floor(state.cfg.totalRam / 2)));
+  $("s-ram-hint").textContent = Number(v) > state.cfg.totalRam * 0.75 ? "(muito alto pro seu PC)" : `(recomendado: ${rec} GB)`;
 }
+$("ram").oninput = (e) => ramSync(e.target.value);
+$("s-ram").oninput = (e) => ramSync(e.target.value);
+$("s-fullscreen").onchange = (e) => set({ fullscreen: e.target.checked });
+$("s-width").oninput = (e) => set({ width: +e.target.value || 0 });
+$("s-height").oninput = (e) => set({ height: +e.target.value || 0 });
+$("s-onlaunch").onchange = (e) => set({ onLaunch: e.target.value });
+$("s-java").oninput = (e) => set({ javaPath: e.target.value });
+$("s-preset").onchange = (e) => set({ jvmPreset: e.target.value });
+$("s-jvm").oninput = (e) => set({ jvmArgs: e.target.value });
+$("s-startup").onchange = (e) => set({ launchAtStartup: e.target.checked });
+$("s-accent").oninput = (e) => set({ accent: e.target.value });
+$("s-blur").oninput = (e) => { $("s-blur-val").textContent = e.target.value; set({ bgBlur: +e.target.value }); };
+$("s-dim").oninput = (e) => { $("s-dim-val").textContent = e.target.value; set({ bgDim: +e.target.value }); };
+$("swatches").replaceChildren(...COLORS.map((c) => {
+  const b = document.createElement("button"); b.dataset.c = c; b.style.background = c; b.title = c;
+  b.onclick = () => { $("s-accent").value = c; set({ accent: c }); }; return b;
+}));
+$("bg-choose").onclick = async () => fillSettings(await api.chooseBg());
+$("bg-clear").onclick = async () => fillSettings(await api.clearBg());
+$("reset-settings").onclick = async () => { fillSettings(await api.resetSettings()); toast("Ajustes restaurados."); };
+$("open-data").onclick = () => api.openData();
+$("open-log").onclick = () => api.openLog();
+$("java-browse").onclick = async () => { const p = await api.chooseJava(); if (p) { $("s-java").value = p; set({ javaPath: p }); } };
+$("java-detect").onclick = async () => {
+  const box = $("java-list"); box.textContent = "Procurando…";
+  const list = await api.detectJava();
+  if (!list.length) return (box.textContent = "Nenhum Java encontrado. Instale o Java 21 (Temurin).");
+  box.replaceChildren(...list.map((j) => {
+    const b = document.createElement("button"); b.textContent = `Java ${j.major} — ${j.path}`; b.title = j.path;
+    b.onclick = () => { $("s-java").value = j.path; set({ javaPath: j.path }); toast(`Java ${j.major} selecionado`); };
+    return b;
+  }));
+};
 
-// slider de RAM (tela inicial e ajustes andam juntos)
-for (const id of ["ram", "s-ram"]) {
-  $(id).addEventListener("input", () => {
-    $("ram-val").textContent = $("s-ram-val").textContent = $(id).value;
-    $("ram").value = $("s-ram").value = $(id).value;
-  });
-  $(id).addEventListener("change", () => saveSettings({ ramGb: Number($(id).value) }));
+// ---------- auto-update do launcher ----------
+const UPD_TEXT = {
+  checking: () => "Procurando atualizações…",
+  downloading: (u) => `Baixando v${u.version}… ${u.percent || 0}%`,
+  ready: (u) => `v${u.version} pronta para instalar.`,
+  manual: (u) => `Nova versão v${u.version} disponível.`,
+  error: (u) => u.message || "Erro ao atualizar.",
+};
+function showUpdate(u) {
+  state.upd = u;
+  const box = $("upd"), btn = $("upd-btn");
+  const text = UPD_TEXT[u.state]?.(u);
+  box.hidden = !text || u.state === "checking";
+  box.classList.toggle("err", u.state === "error");
+  $("upd-text").textContent = text || "";
+  $("upd-bar").hidden = u.state !== "downloading";
+  $("upd-fill").style.width = (u.percent || 0) + "%";
+  btn.hidden = !["ready", "manual"].includes(u.state);
+  btn.textContent = u.state === "ready" ? "Reiniciar e atualizar" : "Baixar atualização";
+  const detail = {
+    idle: "Ainda não verificado.", checking: "Verificando…", none: "Você está na versão mais recente. ✓",
+    dev: "Auto-update só funciona no app instalado (não no npm start).",
+  }[u.state] || text || "";
+  $("upd-detail").textContent = detail;
+  $("upd-check").disabled = ["checking", "downloading"].includes(u.state);
 }
-$("s-fullscreen").addEventListener("change", () => saveSettings({ fullscreen: $("s-fullscreen").checked }));
-$("s-min").addEventListener("change", () => saveSettings({ minimizeOnLaunch: $("s-min").checked }));
-$("s-width").addEventListener("change", () => saveSettings({ width: Number($("s-width").value) || 0 }));
-$("s-height").addEventListener("change", () => saveSettings({ height: Number($("s-height").value) || 0 }));
-$("s-java").addEventListener("change", () => saveSettings({ javaPath: $("s-java").value }));
-$("s-jvm").addEventListener("change", () => saveSettings({ jvmArgs: $("s-jvm").value }));
+$("upd-btn").onclick = () => {
+  const u = state.upd;
+  if (u.state === "ready") api.installUpdate();
+  else if (u.state === "manual") api.openExternal(u.url);
+};
+$("upd-check").onclick = async () => showUpdate(await api.updateCheck());
+api.onUpdate(showUpdate);
 
-/* ---------- eventos gerais ---------- */
-$("auth-submit").addEventListener("click", submitAuth);
-$("auth-toggle").addEventListener("click", () => setMode(mode === "login" ? "register" : "login"));
-["u", "p", "p2"].forEach((id) =>
-  $(id).addEventListener("keydown", (e) => e.key === "Enter" && submitAuth())
-);
-$("logout").addEventListener("click", async () => {
-  clearInterval(statusTimer);
-  await api.logout();
-  show("auth");
-});
-
-api.onUpdate(({ state, version }) => {
-  $("update").hidden = false;
-  if (state === "downloading") {
-    $("update-text").textContent = `Baixando atualização ${version}…`;
-  } else if (state === "ready") {
-    $("update-text").textContent = `Atualização ${version} pronta.`;
-    $("update-btn").hidden = false;
-  }
-});
-$("update-btn").addEventListener("click", () => api.installUpdate());
-
-/* ---------- início ---------- */
-(async () => {
-  const cfg = await api.config();
-  hostLabel = cfg.port && String(cfg.port) !== "25565" ? `${cfg.host}:${cfg.port}` : cfg.host;
-  $("hero-name").textContent = cfg.name;
-  $("hero-sub").textContent = `Minecraft ${cfg.mc} com Fabric`;
-  for (const id of ["ram", "s-ram"]) $(id).max = cfg.maxRam;
-  $("s-ram-hint").textContent = `(seu PC tem ${cfg.maxRam} GB)`;
-  $("about").textContent = `${cfg.name} Launcher v${cfg.version}`;
-  applySettingsToUI(await api.getSettings());
-  const s = await api.session();
-  s ? enterHome(s) : show("auth");
+// ---------- início ----------
+(async function init() {
+  state.cfg = await api.config();
+  document.title = state.cfg.name;
+  $("brand-name").textContent = state.cfg.name; $("hero-name").textContent = state.cfg.name;
+  $("hero-sub").textContent = `${state.cfg.host}:${state.cfg.port}`;
+  $("s-ram").max = $("ram").max = state.cfg.maxRam;
+  $("about").textContent = `${state.cfg.name} Launcher v${state.cfg.version} · repositório ${state.cfg.repo}`;
+  fillSettings(await api.getSettings());
+  ramSync(state.s.ramGb);
+  showUpdate(await api.updateState()); // pega o estado atual (evita perder eventos)
+  setInterval(() => state.session && refreshStatus(), 30000);
+  const session = await api.session();
+  if (session) enter(session);
 })();
