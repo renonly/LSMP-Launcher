@@ -103,7 +103,11 @@ async function play(session, s, send) {
 
   const manifest = await updater.sync(root, (p) => send("progress", p));
   // versão do Minecraft/Fabric vem do pack.json do repositório do modpack
-  const mc = manifest.minecraft || cfg.MC_VERSION;
+  // A API atual publica minecraft como { version: "1.21.1" };
+  // mantemos compatibilidade com manifestos antigos que usam uma string.
+  const mc = typeof manifest.minecraft === "string"
+    ? manifest.minecraft
+    : manifest.minecraft?.version || cfg.MC_VERSION;
   const loader = manifest.loader?.version || cfg.FABRIC_LOADER;
   const loaderType = manifest.loader?.type || "fabric";
   if (loaderType !== "fabric")
