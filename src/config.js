@@ -7,7 +7,7 @@ module.exports = {
   SERVER_PORT: "25565",
   MC_VERSION: "1.21.1",
   FABRIC_LOADER: "0.16.5",
-  NEOFORGE_LOADER: "21.1.172", // usado se o manifesto não informar a versão do NeoForge
+  NEOFORGE_LOADER: "21.1.219", // usado se o manifesto não informar a versão do NeoForge
   FORGE_LOADER: "52.1.0", // usado se o manifesto não informar a versão do Forge
   DEFAULT_RAM_GB: 4,
   // Pastas do pack que o launcher controla (o resto da instância não é mexido)
