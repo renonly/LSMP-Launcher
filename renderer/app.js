@@ -10,6 +10,12 @@ function show(screen) {
   $("home").hidden = screen !== "home";
 }
 
+function shake(el) {
+  el.classList.remove("shake");
+  void el.offsetWidth; // reinicia a animação
+  el.classList.add("shake");
+}
+
 function setMode(m) {
   mode = m;
   const reg = m === "register";
@@ -23,15 +29,21 @@ function setMode(m) {
 async function submitAuth() {
   const u = $("u").value.trim();
   const p = $("p").value;
-  const err = (t) => ($("auth-error").textContent = t);
+  const err = (t) => {
+    $("auth-error").textContent = t;
+    if (t) shake($("card"));
+  };
   err("");
   if (!/^[A-Za-z0-9_]{3,16}$/.test(u)) return err("Usuário: 3 a 16 letras, números ou _.");
   if (p.length < 8) return err("A senha precisa ter pelo menos 8 caracteres.");
   if (mode === "register" && p !== $("p2").value) return err("As senhas não são iguais.");
 
-  $("auth-submit").disabled = true;
+  const btn = $("auth-submit");
+  btn.disabled = true;
+  btn.classList.add("busy");
   const r = await (mode === "register" ? api.register(u, p) : api.login(u, p));
-  $("auth-submit").disabled = false;
+  btn.disabled = false;
+  btn.classList.remove("busy");
   if (!r.ok) return err(r.error);
   $("p").value = $("p2").value = "";
   enterHome(r.data);
@@ -39,7 +51,6 @@ async function submitAuth() {
 
 function enterHome(s) {
   $("who").textContent = s.username;
-  $("avatar").textContent = s.username[0].toUpperCase();
   show("home");
 }
 
@@ -52,12 +63,14 @@ function setProgress({ stage, done, total, file }) {
 
 function resetPlay() {
   $("play").disabled = false;
+  $("play").classList.remove("busy");
   $("play").textContent = "Jogar";
 }
 
 async function play() {
   $("game-error").textContent = "";
   $("play").disabled = true;
+  $("play").classList.add("busy");
   $("play").textContent = "Preparando…";
   const r = await api.play(Number($("ram").value));
   if (!r.ok) {
@@ -76,6 +89,7 @@ $("play").addEventListener("click", play);
 $("ram").addEventListener("input", () => ($("ram-val").textContent = $("ram").value));
 
 api.on("progress", setProgress);
+api.on("closed", () => { resetPlay(); $("progress").hidden = true; });
 api.onUpdate(({ state, version }) => {
   $("update").hidden = false;
   if (state === "downloading") {
@@ -86,11 +100,10 @@ api.onUpdate(({ state, version }) => {
   }
 });
 $("update-btn").addEventListener("click", () => api.installUpdate());
-api.on("closed", () => { resetPlay(); $("progress").hidden = true; });
 
 (async () => {
   const cfg = await api.config();
-  $("brand").textContent = cfg.name;
+  $("brand") && ($("brand").textContent = cfg.name);
   $("hero-name").textContent = cfg.name;
   $("hero-sub").textContent = `Minecraft ${cfg.mc} com Fabric`;
   $("ram").value = cfg.ram;

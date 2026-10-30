@@ -2,7 +2,8 @@
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-const { API_URL, MANAGED_DIRS } = require("./config");
+const { API_URL: RAW_API_URL, MANAGED_DIRS } = require("./config");
+const API_URL = RAW_API_URL.replace(/\/+$/, "");
 
 const sha1 = (p) =>
   new Promise((resolve) => {

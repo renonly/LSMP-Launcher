@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const { autoUpdater } = require("electron-updater");
 const path = require("path");
+const fs = require("fs");
 const auth = require("./src/auth");
 const game = require("./src/game");
 const cfg = require("./src/config");
@@ -15,6 +16,9 @@ function createWindow() {
     minHeight: 540,
     frame: false,
     backgroundColor: "#1b2433",
+    icon: fs.existsSync(path.join(__dirname, "build", "icon.png"))
+      ? path.join(__dirname, "build", "icon.png")
+      : undefined,
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -54,7 +58,7 @@ ipcMain.handle("game:play", wrap(async (ram) => {
   if (!session) throw new Error("Faça login primeiro.");
   await game.play(session, ram, (ch, data) => win.webContents.send(`game:${ch}`, data));
 }));
-ipcMain.on("update:install", () => autoUpdater.quitAndInstall());
+ipcMain.on("update:install", () => autoUpdater.quitAndInstall(true, true));
 
 ipcMain.on("win", (_e, action) => {
   if (action === "min") win.minimize();

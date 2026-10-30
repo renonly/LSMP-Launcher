@@ -21,6 +21,7 @@ body {
   background: url("bg.svg") center / cover no-repeat;
   filter: blur(22px) saturate(1.05);
   z-index: -2;
+  animation: drift 45s ease-in-out infinite alternate;
 }
 .veil { position: fixed; inset: 0; background: rgba(10, 13, 22, .38); z-index: -1; }
 
@@ -61,7 +62,7 @@ button.solid {
   font: inherit; font-weight: 600; padding: 11px 22px; cursor: pointer;
   transition: transform .08s, background .15s;
 }
-button.solid:hover { background: #e9edf5; }
+button.solid:hover { background: #e9edf5; transform: translateY(-1px); }
 button.solid:active { transform: scale(.98); }
 button.solid.big { font-size: 18px; padding: 15px 52px; }
 button:disabled { opacity: .6; cursor: default; }
@@ -91,7 +92,7 @@ button.ghost.small { font-size: 13px; }
 .progress-text { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; margin-bottom: 8px; }
 #file { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bar { height: 4px; background: rgba(255,255,255,.18); border-radius: 99px; overflow: hidden; }
-#bar-fill { height: 100%; width: 0; background: #fff; transition: width .2s; }
+#bar-fill { position: relative; overflow: hidden; height: 100%; width: 0; background: #fff; transition: width .3s ease; }
 
 /* aviso de atualização do launcher */
 .update {
@@ -106,4 +107,35 @@ button.ghost.small { font-size: 13px; }
 }
 
 @media (max-width: 860px) { .hero h1 { font-size: 48px; } .home { padding: 54px 32px 32px; } .user { right: 32px; } }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- animações ---------- */
+@keyframes screen-in { from { opacity: 0; transform: translateY(10px) scale(.992); } to { opacity: 1; transform: none; } }
+@keyframes rise      { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes drift     { from { transform: scale(1.04) translate3d(0, 0, 0); } to { transform: scale(1.12) translate3d(-1.5%, -1%, 0); } }
+@keyframes shimmer   { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes shake     { 20% { transform: translateX(-6px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes pulse     { 50% { opacity: .55; } }
+@keyframes drop      { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* Toda vez que uma tela aparece (display deixa de ser none), a animação roda de novo */
+.screen:not([hidden]) { animation: screen-in .45s cubic-bezier(.2, .7, .2, 1) both; }
+
+/* Entrada da tela principal: título, subtítulo e a base chegam em sequência */
+.home:not([hidden]) .hero h1 { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .05s both; }
+.home:not([hidden]) .hero p  { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .15s both; }
+.home:not([hidden]) .dock    { animation: rise .6s cubic-bezier(.2, .7, .2, 1) .28s both; }
+
+.card.shake { animation: shake .4s ease; }
+.error:not(:empty) { animation: rise .25s ease both; }
+.update { animation: drop .4s cubic-bezier(.2, .7, .2, 1) both; }
+
+button.solid.busy { animation: pulse 1.4s ease-in-out infinite; }
+#bar-fill::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(110, 130, 165, .5), transparent);
+  animation: shimmer 1.3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

@@ -3,7 +3,8 @@
 const { app, safeStorage } = require("electron");
 const fs = require("fs");
 const path = require("path");
-const { API_URL } = require("./config");
+const { API_URL: RAW_API_URL } = require("./config");
+const API_URL = RAW_API_URL.replace(/\/+$/, ""); // tira "/" do final
 
 const file = () => path.join(app.getPath("userData"), "session.bin");
 
@@ -18,7 +19,10 @@ async function call(route, body) {
   } catch {
     throw new Error("Não deu pra conectar na API. Verifique sua internet.");
   }
-  const data = await res.json().catch(() => ({}));
+  if (res.status === 404)
+    throw new Error("API não encontrada (404). Confira o API_URL em src/config.js.");
+  const data = await res.json().catch(() => null);
+  if (!data) throw new Error(`A API respondeu algo inesperado (HTTP ${res.status}).`);
   if (!res.ok) throw new Error(data.error || "Erro na autenticação.");
   return data; // { username, uuid, token }
 }

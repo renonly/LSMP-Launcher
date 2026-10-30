@@ -1,6 +1,6 @@
 {
   "name": "lsmp-launcher",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "description": "LSMP",
   "main": "main.js",
   "author": "renonly",
@@ -9,18 +9,37 @@
     "dist": "electron-builder --publish never"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9",
+    "electron-updater": "^6.8.11",
     "minecraft-launcher-core": "^3.18.2"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
-    "electron-builder": "^24.13.3"
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0"
   },
   "build": {
     "appId": "com.lsmp.launcher",
     "productName": "LSMP Launcher",
-    "win": { "target": "nsis" },
-   "publish": [
+    "directories": { "buildResources": "build" },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LSMP Launcher",
+      "language": "1046",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerSidebar": "build/installerSidebar.bmp",
+      "uninstallerSidebar": "build/installerSidebar.bmp",
+      "installerHeader": "build/installerHeader.bmp",
+      "artifactName": "LSMP-Launcher-Setup-${version}.${ext}"
+    },
+    "publish": [
       { "provider": "github", "owner": "renonly", "repo": "LSMP-Launcher", "releaseType": "release" }
     ]
   }
