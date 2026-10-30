@@ -1,4 +1,3 @@
-// Tudo que você precisa mudar pro seu SMP fica aqui.
 module.exports = {
   SERVER_NAME: "ESMP",
   GITHUB_REPO: "renonly/LSMP-Launcher",
