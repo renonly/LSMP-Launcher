@@ -8,11 +8,11 @@ const updater = require("./updater");
 const gameDir = () => path.join(app.getPath("userData"), "instance");
 
 // Baixa o profile do Fabric e deixa em versions/<id>/<id>.json
-async function ensureFabric(root) {
-  const id = `fabric-loader-${cfg.FABRIC_LOADER}-${cfg.MC_VERSION}`;
+async function ensureFabric(root, mc, loader) {
+  const id = `fabric-loader-${loader}-${mc}`;
   const jsonPath = path.join(root, "versions", id, `${id}.json`);
   if (!fs.existsSync(jsonPath)) {
-    const url = `https://meta.fabricmc.net/v2/versions/loader/${cfg.MC_VERSION}/${cfg.FABRIC_LOADER}/profile/json`;
+    const url = `https://meta.fabricmc.net/v2/versions/loader/${mc}/${loader}/profile/json`;
     const res = await fetch(url);
     if (!res.ok) throw new Error("Não consegui baixar o Fabric.");
     fs.mkdirSync(path.dirname(jsonPath), { recursive: true });
@@ -25,8 +25,11 @@ async function play(session, ramGb, send) {
   const root = gameDir();
   fs.mkdirSync(root, { recursive: true });
 
-  await updater.sync(root, (p) => send("progress", p));
-  const fabricId = await ensureFabric(root);
+  const manifest = await updater.sync(root, (p) => send("progress", p));
+  // versão do Minecraft/Fabric vem do pack.json do repositório do modpack
+  const mc = manifest.minecraft || cfg.MC_VERSION;
+  const loader = manifest.loader?.version || cfg.FABRIC_LOADER;
+  const fabricId = await ensureFabric(root, mc, loader);
 
   const launcher = new Client();
   launcher.on("progress", (e) =>
@@ -47,7 +50,7 @@ async function play(session, ramGb, send) {
       meta: { type: "mojang", demo: false },
     },
     root,
-    version: { number: cfg.MC_VERSION, type: "release", custom: fabricId },
+    version: { number: mc, type: "release", custom: fabricId },
     memory: { max: `${ramGb}G`, min: "1G" },
     // Entra direto no servidor
     server: { host: cfg.SERVER_HOST, port: cfg.SERVER_PORT },
