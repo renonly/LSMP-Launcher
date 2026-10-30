@@ -1,6 +1,6 @@
 // Tudo que você precisa mudar pro seu SMP fica aqui.
 module.exports = {
-  SERVER_NAME: "LSMP",
+  SERVER_NAME: "ESMP",
   GITHUB_REPO: "renonly/LSMP-Launcher", // dono/repositório (precisa ser PÚBLICO pro auto-update)
   API_URL: "https://lsmp-api.bsbr.workers.dev/", // seu Cloudflare Worker
   SERVER_HOST: "play.meusmp.com",            // IP/domínio do servidor

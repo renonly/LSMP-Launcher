@@ -46,7 +46,7 @@ function javaMajor(javaPath) {
 const PRESETS = {
   none: [],
   g1: ["-XX:+UseG1GC", "-XX:MaxGCPauseMillis=100", "-XX:+UnlockExperimentalVMOptions",
-       "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1ReservedPercent=20",
+       "-XX:+DisableExplicitGC", "-XX:G1NewSizePercent=20", "-XX:G1ReservePercent=20",
        "-XX:G1HeapRegionSize=32M"],
 };
 

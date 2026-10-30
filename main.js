@@ -4,7 +4,6 @@ const { pathToFileURL } = require("url");
 const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const { spawn } = require("child_process");
 const auth = require("./src/auth");
 const game = require("./src/game");
 const updater = require("./src/updater");
@@ -77,24 +76,8 @@ async function fallbackCheck(reason) {
     if (res.status === 404) return setUpd("error", { message: "Repositório sem Release pública. O repositório precisa ser público e ter uma Release publicada." });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const r = await res.json();
-    if (newer(r.tag_name, app.getVersion())) {
-      // Plano B: localizar o instalador Windows (.exe) anexado à Release.
-      const asset = (r.assets || []).find((a) =>
-        a.name && /setup.*\.exe$/i.test(a.name) &&
-        a.browser_download_url && /^https:\/\/github\.com\//i.test(a.browser_download_url)
-      );
-      if (!asset) {
-        return setUpd("error", {
-          message: "Existe uma nova versão, mas a Release não contém um instalador Setup.exe."
-        });
-      }
-      return setUpd("manual", {
-        version: r.tag_name.replace(/^v/, ""),
-        assetName: asset.name,
-        downloadUrl: asset.browser_download_url,
-        message: reason
-      });
-    }
+    if (newer(r.tag_name, app.getVersion()))
+      return setUpd("manual", { version: r.tag_name.replace(/^v/, ""), url: r.html_url, message: reason });
     setUpd("none");
   } catch (e) {
     setUpd("error", { message: "Não consegui verificar atualizações. Verifique sua internet." });
@@ -131,45 +114,6 @@ ipcMain.handle("update:state", () => upd);
 ipcMain.handle("update:check", () => checkUpdates(true));
 ipcMain.on("update:install", () => {
   if (upd.state === "ready") setImmediate(() => autoUpdater.quitAndInstall(true, true));
-});
-
-// Plano B: baixa o Setup.exe da Release e executa o instalador localmente.
-// O download só começa após o usuário clicar em "Baixar e instalar".
-ipcMain.handle("update:download-install", async () => {
-  if (upd.state !== "manual" || !upd.downloadUrl) throw new Error("Nenhum instalador disponível.");
-  const url = new URL(upd.downloadUrl);
-  if (url.protocol !== "https:" || url.hostname !== "github.com" ||
-      !url.pathname.includes("/releases/download/") || !/setup.*\.exe$/i.test(path.basename(url.pathname))) {
-    throw new Error("O endereço do instalador não passou na validação de segurança.");
-  }
-
-  try {
-    setUpd("downloadingInstaller", { version: upd.version, percent: 0 });
-    const res = await fetch(url.href, { redirect: "follow", signal: AbortSignal.timeout(10 * 60 * 1000) });
-    if (!res.ok) throw new Error(`Falha ao baixar instalador (HTTP ${res.status}).`);
-    const finalUrl = new URL(res.url);
-    if (finalUrl.protocol !== "https:") throw new Error("Download redirecionado para endereço inseguro.");
-
-    const total = Number(res.headers.get("content-length")) || 0;
-    const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.length < 1024 * 100 || (total && buffer.length !== total))
-      throw new Error("O instalador baixado parece incompleto.");
-    if (buffer.subarray(0, 2).toString() !== "MZ")
-      throw new Error("O arquivo baixado não é um executável Windows válido.");
-
-    const installer = path.join(app.getPath("temp"), `LSMP-Launcher-Setup-${upd.version}.exe`);
-    fs.writeFileSync(installer, buffer);
-    setUpd("installing", { version: upd.version });
-    const child = spawn(installer, [], { detached: true, stdio: "ignore", windowsHide: false });
-    child.once("error", (err) => log("installer launch error", err));
-    child.unref();
-    setTimeout(() => app.quit(), 700);
-    return { ok: true };
-  } catch (e) {
-    log("fallback installer failed", e);
-    setUpd("error", { message: e.message || "Não foi possível baixar ou executar o instalador." });
-    throw e;
-  }
 });
 
 // ================= IPC =================

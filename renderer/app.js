@@ -272,9 +272,7 @@ $("java-detect").onclick = async () => {
 // ---------- auto-update do launcher ----------
 const UPD_TEXT = {
   checking: () => "Procurando atualizações…",
-  downloading: (u) => `Baixando atualização v${u.version}… ${u.percent || 0}%`,
-  downloadingInstaller: (u) => `Baixando instalador v${u.version}…`,
-  installing: (u) => `Abrindo instalador v${u.version}…`,
+  downloading: (u) => `Baixando v${u.version}… ${u.percent || 0}%`,
   ready: (u) => `v${u.version} pronta para instalar.`,
   manual: (u) => `Nova versão v${u.version} disponível.`,
   error: (u) => u.message || "Erro ao atualizar.",
@@ -286,11 +284,10 @@ function showUpdate(u) {
   box.hidden = !text || u.state === "checking";
   box.classList.toggle("err", u.state === "error");
   $("upd-text").textContent = text || "";
-  $("upd-bar").hidden = !["downloading", "downloadingInstaller"].includes(u.state);
+  $("upd-bar").hidden = u.state !== "downloading";
   $("upd-fill").style.width = (u.percent || 0) + "%";
   btn.hidden = !["ready", "manual"].includes(u.state);
-  btn.disabled = !["ready", "manual"].includes(u.state);
-  btn.textContent = u.state === "ready" ? "Reiniciar e atualizar" : "Baixar e instalar";
+  btn.textContent = u.state === "ready" ? "Reiniciar e atualizar" : "Baixar atualização";
   const detail = {
     idle: "Ainda não verificado.", checking: "Verificando…", none: "Você está na versão mais recente. ✓",
     dev: "Auto-update só funciona no app instalado (não no npm start).",
@@ -298,14 +295,10 @@ function showUpdate(u) {
   $("upd-detail").textContent = detail;
   $("upd-check").disabled = ["checking", "downloading"].includes(u.state);
 }
-$("upd-btn").onclick = async () => {
+$("upd-btn").onclick = () => {
   const u = state.upd;
   if (u.state === "ready") api.installUpdate();
-  else if (u.state === "manual") {
-    $("upd-btn").disabled = true;
-    const r = await api.downloadInstall();
-    if (!r || !r.ok) toast("Não foi possível iniciar a instalação.");
-  }
+  else if (u.state === "manual") api.openExternal(u.url);
 };
 $("upd-check").onclick = async () => showUpdate(await api.updateCheck());
 api.onUpdate(showUpdate);
