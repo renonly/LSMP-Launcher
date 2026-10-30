@@ -18,13 +18,16 @@ body { font: 14px/1.45 "Segoe UI", system-ui, sans-serif; color: var(--text); ba
 h1, h2, h3, p { margin: 0; }
 button, input, select { font: inherit; color: inherit; }
 
-.bg { position: fixed; inset: -30px; background: url(bg.jpg) center/cover, url(bg.svg) center/cover; filter: blur(var(--blur)); z-index: -2; }
+.bg { position: fixed; inset: -30px; background-color: #0e131b;
+  background-image: radial-gradient(60% 50% at 25% 20%, rgba(74,222,128,.14), transparent 70%), radial-gradient(55% 55% at 80% 85%, rgba(56,189,248,.12), transparent 70%), linear-gradient(135deg, #111827, #0b0f17);
+  background-size: cover; background-position: center; filter: blur(var(--blur)); z-index: -2; }
 .veil { position: fixed; inset: 0; background: linear-gradient(90deg, rgba(8,11,17,calc(var(--dim) + .3)), rgba(8,11,17,var(--dim))); z-index: -1; }
 
 /* barra de título */
 .titlebar { position: fixed; top: 0; left: 0; right: 0; height: 36px; -webkit-app-region: drag; z-index: 50; display: flex; justify-content: flex-end; }
 .win-btns { -webkit-app-region: no-drag; display: flex; }
 .win-btns button { width: 46px; height: 36px; border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 14px; }
+.win-btns button svg { display: block; margin: auto; }
 .win-btns button:hover { background: var(--panel2); color: var(--text); }
 .win-btns .close:hover { background: #e5484d; color: #fff; }
 
@@ -98,6 +101,9 @@ input[type=range] { accent-color: var(--accent); width: 100%; }
 .dot.big { width: 16px; height: 16px; }
 .dot.on { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
 .dot.off { background: var(--danger); }
+.badges { display: flex; gap: 10px; margin-top: 16px; }
+.badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; border-radius: 99px; background: var(--panel); border: 1px solid var(--line); color: var(--muted); cursor: default; backdrop-filter: blur(10px); }
+.badge b { color: var(--text); font-size: 15px; }
 .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; backdrop-filter: blur(10px); }
 .tile span { color: var(--muted); font-size: 12px; }

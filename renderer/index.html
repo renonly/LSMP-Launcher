@@ -12,6 +12,7 @@
 
   <header class="titlebar">
     <div class="win-btns">
+      <button id="bg-quick" title="Escolher imagem de fundo" aria-label="Escolher imagem de fundo"><svg class="ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></button>
       <button data-win="min" aria-label="Minimizar">–</button>
       <button data-win="max" aria-label="Maximizar">▢</button>
       <button data-win="close" class="close" aria-label="Fechar">✕</button>
@@ -40,7 +41,6 @@
       <nav id="nav">
         <button data-tab="play" class="active"><i>▶</i>Início</button>
         <button data-tab="news"><i>✦</i>Novidades</button>
-        <button data-tab="server"><i>◉</i>Servidor</button>
         <button data-tab="pack"><i>▤</i>Mods</button>
         <button data-tab="shots"><i>▣</i>Capturas</button>
         <button data-tab="console"><i>›_</i>Console</button>
@@ -65,19 +65,10 @@
       <section class="view" data-view="play">
         <div class="hero">
           <h1 id="hero-name">LSMP</h1>
-          <p id="hero-sub"></p>
-          <div class="chips">
-            <button id="srv" class="chip" title="Clique para copiar o IP"><i id="srv-dot" class="dot"></i><span id="srv-text">Verificando…</span></button>
-            <span id="pack-chip" class="chip static">Pack…</span>
-            <span id="mc-chip" class="chip static"></span>
+          <div class="badges">
+            <span class="badge" title="Jogadores online"><i id="srv-dot" class="dot"></i><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><b id="t-players">—</b></span>
+            <span class="badge" title="Ping"><svg class="ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><path d="M12 20h.01"/></svg><b id="t-ping">—</b></span>
           </div>
-        </div>
-
-        <div class="tiles">
-          <div class="tile"><span>Jogadores online</span><b id="t-players">—</b></div>
-          <div class="tile"><span>Ping</span><b id="t-ping">—</b></div>
-          <div class="tile"><span>Tempo de jogo</span><b id="t-time">0h</b></div>
-          <div class="tile"><span>Última vez</span><b id="t-last">—</b></div>
         </div>
 
         <div class="latest" id="latest" hidden>
@@ -105,24 +96,6 @@
       <section class="view panel" data-view="news" hidden>
         <h2>Novidades</h2>
         <div id="news-list" class="stack"></div>
-      </section>
-
-      <!-- SERVIDOR -->
-      <section class="view panel" data-view="server" hidden>
-        <div class="panel-head"><h2>Servidor</h2><button id="srv-refresh" class="outline small">Atualizar</button></div>
-        <div class="srv-card">
-          <div class="srv-top"><i id="s-dot" class="dot big"></i><div><b id="s-state">—</b><p id="s-motd"></p></div></div>
-          <div class="kv">
-            <div><span>Endereço</span><b id="s-addr"></b></div>
-            <div><span>Versão</span><b id="s-ver">—</b></div>
-            <div><span>Jogadores</span><b id="s-players">—</b></div>
-            <div><span>Ping</span><b id="s-ping">—</b></div>
-          </div>
-          <div class="bar"><div id="s-fill"></div></div>
-          <div class="toolbar"><button id="s-copy" class="outline">Copiar IP</button></div>
-        </div>
-        <h3>Histórico de ping</h3>
-        <div class="spark" id="spark"></div>
       </section>
 
       <!-- MODS -->

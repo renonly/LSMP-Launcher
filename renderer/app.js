@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const api = window.lsmp;
-const state = { cfg: null, s: null, session: null, status: null, pings: [], busy: false, running: false, pack: null, shot: null };
+const state = { cfg: null, s: null, session: null, status: null, busy: false, running: false, pack: null, shot: null };
 const COLORS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#f87171", "#2dd4bf"];
 
 function toast(msg) {
@@ -26,8 +26,6 @@ function go(tab) {
   if (tab === "pack") loadPack();
   if (tab === "news") loadNews();
   if (tab === "shots") loadShots();
-  if (tab === "server") refreshStatus();
-  if (tab === "play") loadStats();
 }
 $("nav").onclick = (e) => { const b = e.target.closest("button"); if (b) go(b.dataset.tab); };
 document.addEventListener("click", (e) => {
@@ -85,42 +83,13 @@ function applyLook(s) {
   document.querySelectorAll(".swatches button").forEach((b) => b.classList.toggle("on", b.dataset.c === s.accent.toLowerCase()));
 }
 
-// ---------- status do servidor ----------
+// ---------- status do servidor (só ícones, sem IP) ----------
 async function refreshStatus() {
   const st = await api.status();
   state.status = st;
-  state.pings.push(st.online ? st.ping : 0);
-  state.pings = state.pings.slice(-40);
-  const addr = `${state.cfg.host}:${state.cfg.port}`;
   $("srv-dot").className = "dot " + (st.online ? "on" : "off");
-  $("srv-text").textContent = st.online ? `Online · ${st.players}/${st.max} jogadores` : "Servidor offline";
-  $("t-players").textContent = st.online ? `${st.players}/${st.max}` : "—";
+  $("t-players").textContent = st.online ? `${st.players}/${st.max}` : "Offline";
   $("t-ping").textContent = st.online ? st.ping + " ms" : "—";
-  $("s-dot").className = "dot big " + (st.online ? "on" : "off");
-  $("s-state").textContent = st.online ? "Online" : "Offline";
-  $("s-motd").textContent = st.online ? st.motd : "Não foi possível conectar ao servidor.";
-  $("s-addr").textContent = addr;
-  $("s-ver").textContent = st.online ? st.version : "—";
-  $("s-players").textContent = st.online ? `${st.players} / ${st.max}` : "—";
-  $("s-ping").textContent = st.online ? st.ping + " ms" : "—";
-  $("s-fill").style.width = st.online && st.max ? Math.min(100, (st.players / st.max) * 100) + "%" : "0";
-  const max = Math.max(50, ...state.pings);
-  $("spark").replaceChildren(...state.pings.map((p) => {
-    const i = document.createElement("i");
-    if (!p) i.className = "x";
-    i.style.height = (p ? Math.max(4, (p / max) * 100) : 4) + "%";
-    i.title = p ? p + " ms" : "offline";
-    return i;
-  }));
-}
-const copyIp = () => { api.copy(`${state.cfg.host}:${state.cfg.port}`); toast("IP copiado!"); };
-$("srv").onclick = copyIp; $("s-copy").onclick = copyIp;
-$("srv-refresh").onclick = refreshStatus;
-
-async function loadStats() {
-  const st = await api.stats();
-  $("t-time").textContent = fmtHours(st.playMs);
-  $("t-last").textContent = st.last ? fmtDate(st.last) : "—";
 }
 
 // ---------- novidades ----------
@@ -150,11 +119,7 @@ async function loadNews(small) {
 // ---------- pack ----------
 async function loadPackChip() {
   const r = await api.packInfo();
-  if (r.ok) {
-    state.pack = r.data;
-    $("pack-chip").textContent = `Pack v${r.data.version}${r.data.offline ? " (offline)" : ""}`;
-    $("mc-chip").textContent = `Minecraft ${r.data.minecraft} · ${r.data.loader?.type || "fabric"}`;
-  } else { $("pack-chip").textContent = "Pack indisponível"; $("mc-chip").textContent = `Minecraft ${state.cfg.mc}`; }
+  if (r.ok) state.pack = r.data;
   return r;
 }
 async function loadPack() {
@@ -166,7 +131,7 @@ function renderPack() {
   const p = state.pack; if (!p) return;
   const q = $("pack-search").value.toLowerCase(), f = $("pack-filter").value, so = $("pack-sort").value;
   const total = p.files.reduce((a, x) => a + x.size, 0), ok = p.files.filter((x) => x.installed).length;
-  $("pack-stats").replaceChildren(...[`${p.files.length} arquivos`, fmtSize(total), `${ok} instalados`, `v${p.version}`].map((t) => {
+  $("pack-stats").replaceChildren(...[`${p.files.length} arquivos`, fmtSize(total), `${ok} instalados`].map((t) => {
     const c = document.createElement("span"); c.className = "chip static"; c.textContent = t; return c;
   }));
   let files = p.files.filter((x) => x.path.toLowerCase().includes(q) && (f === "all" || (f === "ok") === x.installed));
@@ -232,7 +197,7 @@ api.on("log", (l) => {
 });
 api.on("started", () => { setBusy(false); setRunning(true); $("progress").hidden = true; });
 api.on("closed", (code) => {
-  setRunning(false); setBusy(false); loadStats();
+  setRunning(false); setBusy(false);
   if (code) { $("game-error").textContent = `O jogo fechou com erro (código ${code}). Veja a aba Console.`; }
 });
 $("play").onclick = async () => {
@@ -286,6 +251,7 @@ $("swatches").replaceChildren(...COLORS.map((c) => {
   const b = document.createElement("button"); b.dataset.c = c; b.style.background = c; b.title = c;
   b.onclick = () => { $("s-accent").value = c; set({ accent: c }); }; return b;
 }));
+$("bg-quick").onclick = async () => fillSettings(await api.chooseBg());
 $("bg-choose").onclick = async () => fillSettings(await api.chooseBg());
 $("bg-clear").onclick = async () => fillSettings(await api.clearBg());
 $("reset-settings").onclick = async () => { fillSettings(await api.resetSettings()); toast("Ajustes restaurados."); };
@@ -342,9 +308,8 @@ api.onUpdate(showUpdate);
   state.cfg = await api.config();
   document.title = state.cfg.name;
   $("brand-name").textContent = state.cfg.name; $("hero-name").textContent = state.cfg.name;
-  $("hero-sub").textContent = `${state.cfg.host}:${state.cfg.port}`;
   $("s-ram").max = $("ram").max = state.cfg.maxRam;
-  $("about").textContent = `${state.cfg.name} Launcher v${state.cfg.version} · repositório ${state.cfg.repo}`;
+  $("about").textContent = `${state.cfg.name} Launcher v${state.cfg.version}`;
   fillSettings(await api.getSettings());
   ramSync(state.s.ramGb);
   showUpdate(await api.updateState()); // pega o estado atual (evita perder eventos)
