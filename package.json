@@ -1,7 +1,7 @@
 {
-  "name": "lsmp-launcher",
-  "version": "1.0.6",
-  "description": "LSMP",
+  "name": "esmp-launcher",
+  "version": "1.0.7",
+  "description": "ESMP",
   "main": "main.js",
   "author": "renonly",
   "scripts": {
@@ -17,8 +17,8 @@
     "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "com.lsmp.launcher",
-    "productName": "LSMP Launcher",
+    "appId": "com.esmp.launcher",
+    "productName": "ESMP Launcher",
     "directories": {
       "buildResources": "build"
     },
@@ -32,7 +32,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "LSMP Launcher",
+      "shortcutName": "ESMP Launcher",
       "language": "1046",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
