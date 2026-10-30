@@ -1,7 +1,7 @@
 {
-  "name": "lsmp-launcher",
-  "version": "1.0.8",
-  "description": "LSMP",
+  "name": "esmp-launcher",
+  "version": "1.0.9",
+  "description": "ESMP",
   "main": "main.js",
   "author": "renonly",
   "scripts": {
@@ -17,8 +17,8 @@
     "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "com.lsmp.launcher",
-    "productName": "LSMP Launcher",
+    "appId": "com.esmp.launcher",
+    "productName": "ESMP Launcher",
     "directories": {
       "buildResources": "build"
     },
@@ -32,20 +32,20 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "LSMP Launcher",
+      "shortcutName": "ESMP Launcher",
       "language": "1046",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "installerSidebar": "build/installerSidebar.bmp",
       "uninstallerSidebar": "build/installerSidebar.bmp",
       "installerHeader": "build/installerHeader.bmp",
-      "artifactName": "LSMP-Launcher-Setup-${version}.${ext}"
+      "artifactName": "ESMP-Launcher-Setup-${version}.${ext}"
     },
     "publish": [
       {
         "provider": "github",
         "owner": "renonly",
-        "repo": "LSMP-Launcher",
+        "repo": "ESMP-Launcher",
         "releaseType": "release"
       }
     ]
