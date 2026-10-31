@@ -156,6 +156,7 @@ ipcMain.handle("settings:set", (_e, patch) => {
 ipcMain.handle("settings:reset", () => withBg(settings.reset()));
 ipcMain.handle("status:server", () => status.ping(cfg.SERVER_HOST, cfg.SERVER_PORT));
 ipcMain.handle("pack:info", wrap(() => updater.info(game.gameDir())));
+ipcMain.handle("game:installed", () => game.isInstalled());
 ipcMain.handle("stats", () => stats.load());
 ipcMain.handle("news", () => news.get());
 
