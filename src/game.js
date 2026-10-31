@@ -207,4 +207,5 @@ async function play(session, s, send) {
   return proc;
 }
 
-module.exports = { play, syncOnly, gameDir, detectJava };
+const isInstalled = () => updater.isInstalled(gameDir());
+module.exports = { play, syncOnly, gameDir, detectJava, isInstalled };
