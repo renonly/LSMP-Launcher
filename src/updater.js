@@ -171,4 +171,6 @@ async function sync(dir, onProgress = () => {}, { force = false } = {}) {
   return manifest;
 }
 
-module.exports = { sync, info };
+// "Instalado" = ja sincronizou o pack alguma vez e a pasta mods existe (some depois de desinstalar)
+const isInstalled = d => !!readInstalled(d) && fs.existsSync(path.join(d, "mods"));
+module.exports = { sync, info, isInstalled };
