@@ -1,6 +1,6 @@
 module.exports = {
   SERVER_NAME: "ESMP",
-  GITHUB_REPO: "renonly/LSMP-Launcher",
+  GITHUB_REPO: "renonly/ESMP-Launcher",
   API_URL: "https://lsmp-api.bsbr.workers.dev/",
   SERVER_HOST: "play.meusmp.com",     
   SERVER_PORT: "25565",
