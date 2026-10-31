@@ -1,13 +1,13 @@
 {
   "name": "esmp-launcher",
-  "version": "1.4.3",
+  "version": "1.2.0",
   "description": "ESMP",
   "main": "main.js",
   "author": "renonly",
   "scripts": {
     "start": "electron .",
     "dist": "electron-builder --publish never",
-    "dist:installer": "node installer/prepare.js && npm --prefix installer install && npm --prefix installer run dist",
+    "dist:installer": "cd installer && npm install && npm run dist",
     "dist:all": "npm run dist && npm run dist:installer"
   },
   "dependencies": {
@@ -51,6 +51,13 @@
         "repo": "ESMP-Launcher",
         "releaseType": "release"
       }
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "renderer/**/*",
+      "build/icon.png"
     ]
   }
 }

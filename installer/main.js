@@ -1,6 +1,7 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, net } = require("electron");
 const path = require("path");
 const fs = require("fs");
+const os = require("os");
 const { exec } = require("child_process");
 
 const PRODUCT = "ESMP Launcher";
@@ -22,13 +23,34 @@ app.whenReady().then(createWindow);
 app.on("window-all-closed", () => app.quit());
 
 const defaultDir = () => path.join(process.env.LOCALAPPDATA || app.getPath("appData"), "Programs", PRODUCT);
-// o instalador do launcher (NSIS) vem embutido em resources/payload (ou installer/payload no npm start)
-function payloadExe() {
-  const dirs = [path.join(process.resourcesPath || "", "payload"), path.join(__dirname, "payload")];
-  for (const d of dirs) {
-    try { const f = fs.readdirSync(d).find((n) => /\.exe$/i.test(n)); if (f) return path.join(d, f); } catch {}
+const REPO = "renonly/ESMP-Launcher";
+const UA = { "User-Agent": "ESMP-Installer", Accept: "application/vnd.github+json" };
+const send = (ch, d) => { if (win && !win.isDestroyed()) win.webContents.send(ch, d); };
+
+// o instalador do launcher (NSIS) é baixado da última release (assim este .exe fica leve)
+async function findSetup() {
+  const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: UA });
+  if (!r.ok) throw new Error(`Não consegui consultar a última versão (erro ${r.status}). Tente de novo em instantes.`);
+  const rel = await r.json();
+  const a = (rel.assets || []).find((x) => /^ESMP-Launcher-Setup-.*\.exe$/i.test(x.name));
+  if (!a) throw new Error("A última versão não tem o instalador anexado.");
+  return a.browser_download_url;
+}
+async function download(url, dest) {
+  const res = await net.fetch(url, { headers: { "User-Agent": "ESMP-Installer" } });
+  if (!res.ok || !res.body) throw new Error(`Falha ao baixar o launcher (erro ${res.status}).`);
+  const total = Number(res.headers.get("content-length")) || 0;
+  const out = fs.createWriteStream(dest);
+  const reader = res.body.getReader();
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    got += value.length;
+    if (!out.write(value)) await new Promise((ok) => out.once("drain", ok));
+    send("progress", total ? got / total : 0);
   }
-  return null;
+  await new Promise((ok) => out.end(ok));
 }
 
 ipcMain.handle("defaultDir", () => defaultDir());
@@ -40,20 +62,29 @@ ipcMain.handle("chooseDir", async () => {
   return path.basename(p).toLowerCase() === PRODUCT.toLowerCase() ? p : path.join(p, PRODUCT);
 });
 
-ipcMain.handle("install", (_e, dir) => new Promise((resolve) => {
-  const exe = payloadExe();
-  if (!exe) return resolve({ ok: false, error: "Arquivos do instalador não encontrados. Baixe o instalador de novo." });
+ipcMain.handle("install", async (_e, dir) => {
   dir = String(dir || "").trim().replace(/[\\/]+$/, "");
-  if (!/^[a-zA-Z]:\\/.test(dir) || /["&|^%<>]/.test(dir)) return resolve({ ok: false, error: "Pasta inválida. Use um caminho como C:\\Games\\ESMP (sem & % ^ | < >)." });
+  if (!/^[a-zA-Z]:\\/.test(dir) || /["&|^%<>]/.test(dir)) return { ok: false, error: "Pasta inválida. Use um caminho como C:\\Games\\ESMP (sem & % ^ | < >)." };
   try { fs.mkdirSync(dir, { recursive: true }); fs.accessSync(dir, fs.constants.W_OK); }
-  catch { return resolve({ ok: false, error: "Sem permissão pra instalar nessa pasta. Escolha outra." }); }
+  catch { return { ok: false, error: "Sem permissão pra instalar nessa pasta. Escolha outra." }; }
+  const exe = path.join(os.tmpdir(), `esmp-setup-${Date.now()}.exe`);
+  try {
+    send("phase", "download");
+    await download(await findSetup(), exe);
+  } catch (e) {
+    fs.rmSync(exe, { force: true });
+    return { ok: false, error: e.message || "Não foi possível baixar o launcher. Verifique sua internet." };
+  }
+  send("phase", "install");
   // NSIS silencioso: /S sem janela; /D= precisa ser o último argumento e SEM aspas
-  exec(`"${exe}" /S /D=${dir}`, { windowsHide: true }, (err) => {
-    if (err) return resolve({ ok: false, error: `A instalação falhou (código ${err.code ?? "?"}). Feche o launcher se estiver aberto e tente de novo.` });
-    const main = path.join(dir, `${PRODUCT}.exe`);
-    resolve(fs.existsSync(main) ? { ok: true } : { ok: false, error: "A instalação terminou, mas o programa não foi encontrado na pasta escolhida." });
+  return new Promise((resolve) => {
+    exec(`"${exe}" /S /D=${dir}`, { windowsHide: true }, (err) => {
+      fs.rmSync(exe, { force: true });
+      if (err) return resolve({ ok: false, error: `A instalação falhou (código ${err.code ?? "?"}). Feche o launcher se estiver aberto e tente de novo.` });
+      resolve(fs.existsSync(path.join(dir, `${PRODUCT}.exe`)) ? { ok: true } : { ok: false, error: "A instalação terminou, mas o programa não foi encontrado na pasta escolhida." });
+    });
   });
-}));
+});
 
 ipcMain.handle("launch", async (_e, dir) => {
   const main = path.join(String(dir), `${PRODUCT}.exe`);

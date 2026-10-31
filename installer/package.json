@@ -26,12 +26,6 @@
       "build/icon.png",
       "!node_modules/**/*"
     ],
-    "extraResources": [
-      {
-        "from": "payload",
-        "to": "payload"
-      }
-    ],
     "win": {
       "target": "portable",
       "icon": "build/icon.ico"
@@ -40,6 +34,11 @@
       "artifactName": "Instalar-ESMP.${ext}"
     },
     "npmRebuild": false,
-    "nodeGypRebuild": false
+    "nodeGypRebuild": false,
+    "compression": "maximum",
+    "electronLanguages": [
+      "pt-BR",
+      "en-US"
+    ]
   }
 }
