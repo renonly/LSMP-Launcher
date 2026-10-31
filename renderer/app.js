@@ -370,3 +370,6 @@ function fxTick() {
   }
 }
 addEventListener("resize", fxResize); fxResize(); applyLookUI(); fxTick();
+
+// ---------- abertura: fundo roxo escuro, depois fade e slide-in sutil ----------
+setTimeout(() => document.documentElement.classList.remove("booting"), 2600);

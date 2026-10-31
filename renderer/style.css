@@ -213,3 +213,21 @@ input[type=range] { accent-color: var(--accent); padding: 0; }
 .top-right { gap: 8px; }
 .me-info b { max-width: 80px; }
 @media (max-width: 1100px) { .brand b, .me-info { display: none; } }
+
+/* ===== abertura (intro) ===== */
+.intro { position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(60% 55% at 50% 45%, #1a0d33, #0a0614 75%); transition: opacity 1s ease, visibility 1s; }
+.intro-lotus { width: 144px; height: 121px; background: url("lotus-strip.png") 0 0 / 10080px 100% no-repeat; animation: introIn 1.2s var(--ease) both, bloom1 2.2s steps(70) .2s both; filter: drop-shadow(0 0 26px rgba(139,92,246,.7)); }
+@keyframes bloom1 { to { background-position: -10080px 0; } }
+@keyframes introIn { from { opacity: 0; transform: scale(.85); } }
+.intro-name { font-size: 22px; letter-spacing: 14px; margin-right: -14px; color: #e9e1ff; animation: introIn 1.2s var(--ease) .5s both; }
+.intro-line { width: 120px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); animation: introLine 1.6s ease .6s both; }
+@keyframes introLine { from { width: 0; opacity: 0; } }
+html:not(.booting) .intro { opacity: 0; visibility: hidden; pointer-events: none; }
+/* durante a abertura as animações da interface ficam em espera e depois entram com slide sutil */
+html.booting .app *, html.booting .split * { animation-play-state: paused !important; }
+html.booting .app, html.booting .split { opacity: 0; }
+.topbar { animation: topIn .9s var(--ease) .1s both; }
+@keyframes topIn { from { opacity: 0; transform: translateY(-14px); } }
+.hero { animation: heroIn 1s var(--ease) .2s both; }
+@keyframes heroIn { from { opacity: 0; transform: translateX(-24px); } }
+@media (prefers-reduced-motion: reduce) { .intro-lotus { animation: none; background-position: -3000px 0; } }

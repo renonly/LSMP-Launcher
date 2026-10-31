@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR" class="booting">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'" />
+  <title>Instalar ESMP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg" aria-hidden="true"></div>
+  <div class="aurora" aria-hidden="true"><i></i><i></i></div>
+  <div class="drag"></div>
+  <div class="win"><button data-win="min" aria-label="Minimizar">–</button><button data-win="close" class="close" aria-label="Fechar">✕</button></div>
+
+  <div class="shell">
+    <aside class="art">
+      <div class="lotus"></div>
+      <h2>ESMP</h2>
+      <ol class="steps" id="steps">
+        <li data-s="0" class="on"><i>1</i>Boas-vindas</li>
+        <li data-s="1"><i>2</i>Local</li>
+        <li data-s="2"><i>3</i>Instalação</li>
+        <li data-s="3"><i>4</i>Pronto</li>
+      </ol>
+    </aside>
+
+    <main class="pages">
+      <section class="page" data-page="0">
+        <h1>Bem-vindo ao ESMP</h1>
+        <p class="lead">Vamos instalar o launcher no seu computador. Leva só um instante.</p>
+        <ul class="feats">
+          <li>Atualização automática do launcher e dos mods</li>
+          <li>Atalhos na área de trabalho e no menu Iniciar</li>
+          <li>Sem precisar de permissão de administrador</li>
+        </ul>
+        <div class="actions"><button class="solid big" id="go-1">Começar</button></div>
+      </section>
+
+      <section class="page" data-page="1" hidden>
+        <h1>Onde instalar?</h1>
+        <p class="lead">Recomendamos deixar o local padrão.</p>
+        <label>Pasta de instalação
+          <div class="inline"><input id="dir" spellcheck="false" /><button class="outline" id="browse">Procurar…</button></div>
+        </label>
+        <p class="error" id="dir-error" role="alert"></p>
+        <div class="actions"><button class="ghost" id="back-0">Voltar</button><button class="solid big" id="do-install">Instalar</button></div>
+      </section>
+
+      <section class="page" data-page="2" hidden>
+        <h1>Instalando…</h1>
+        <p class="lead" id="stage">Preparando</p>
+        <div class="bar"><div id="fill"></div></div>
+        <b class="pct" id="pct">0%</b>
+        <p class="note">Não feche esta janela.</p>
+      </section>
+
+      <section class="page" data-page="3" hidden>
+        <div class="check"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+        <h1>Tudo pronto!</h1>
+        <p class="lead">O ESMP foi instalado com sucesso.</p>
+        <label class="switch"><input id="run" type="checkbox" checked /><span>Abrir o ESMP agora</span></label>
+        <div class="actions"><button class="solid big" id="finish">Concluir</button></div>
+      </section>
+
+      <section class="page" data-page="4" hidden>
+        <h1>Algo deu errado</h1>
+        <p class="error big-err" id="fail"></p>
+        <div class="actions"><button class="ghost" id="back-1">Voltar</button><button class="solid big" id="retry">Tentar de novo</button></div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
