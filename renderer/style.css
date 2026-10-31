@@ -261,3 +261,14 @@ html.booting .app, html.booting .split { opacity: 0; }
 .md hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
 .md a.md-link { color: var(--accent-hover); text-decoration: none; border-bottom: 1px dashed rgba(var(--accent-rgb),.6); word-break: break-all; }
 .md a.md-link:hover { color: #fff; border-bottom-style: solid; }
+
+/* ===== Arquivos do pack: respiro entre os blocos ===== */
+#grp-pack { display: flex; flex-direction: column; gap: 20px; padding: 22px 24px; }
+#grp-pack > * { margin: 0; }
+#grp-pack h3 { margin: 0; }
+#grp-pack .btn-row { display: flex; flex-wrap: wrap; gap: 14px; margin: 0; }
+#grp-pack .small { padding: 9px 18px; font-size: 13px; border-radius: 8px; }
+#grp-pack .mini-progress { margin: 0; }
+#grp-pack .progress-text { margin-bottom: 10px; }
+#grp-pack #s-sync-error:empty { display: none; }
+#grp-pack .danger-zone { margin-top: 6px; padding-top: 22px; gap: 14px; }
