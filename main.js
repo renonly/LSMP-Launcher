@@ -247,6 +247,29 @@ ipcMain.handle("game:sync", wrap(async (force) => {
   finally { running = false; }
 }));
 
+ipcMain.handle("game:uninstall", wrap(async () => {
+  if (running) throw new Error("Feche o jogo antes de desinstalar.");
+  const dir = game.gameDir();
+  if (path.basename(dir) !== "instance") throw new Error("Pasta do jogo inesperada, nada foi apagado.");   // trava de seguranca
+  if (!fs.existsSync(dir)) return { removed: false, reason: "Nada instalado." };
+  const { response } = await dialog.showMessageBox(win, {
+    type: "warning", title: "Desinstalar Minecraft", noLink: true, cancelId: 0, defaultId: 0,
+    buttons: ["Cancelar", "Desinstalar (manter mundos e capturas)", "Desinstalar tudo"],
+    message: "Desinstalar o Minecraft do ESMP?",
+    detail: "Apaga os mods, configs e arquivos do jogo deste computador. Sua conta e os ajustes do launcher não são afetados.\n\n" +
+            "\"Manter mundos e capturas\" preserva as pastas saves e screenshots. \"Desinstalar tudo\" apaga também seus mundos do singleplayer.",
+  });
+  if (response === 0) return { removed: false, cancelled: true };
+  running = true;   // evita sincronizar/abrir o jogo no meio da remocao
+  try {
+    const keep = response === 1 ? new Set(["saves", "screenshots"]) : new Set();
+    const opts = { recursive: true, force: true, maxRetries: 5, retryDelay: 300 };   // Windows as vezes segura o arquivo por um instante
+    if (keep.size === 0) fs.rmSync(dir, opts);
+    else for (const name of fs.readdirSync(dir)) if (!keep.has(name)) fs.rmSync(path.join(dir, name), opts);
+  } finally { running = false; }
+  return { removed: true, kept: response === 1 };
+}));
+
 ipcMain.on("win", (_e, action) => {
   if (!win || win.isDestroyed()) return;
   if (action === "min") win.minimize();
