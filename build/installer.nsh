@@ -1,7 +1,11 @@
-; Visual do instalador ESMP (tema roxo escuro)
 !macro customHeader
+  !ifdef MUI_BGCOLOR
+    !undef MUI_BGCOLOR
+  !endif
   !define MUI_BGCOLOR "0A0614"
+  !ifdef MUI_TEXTCOLOR
+    !undef MUI_TEXTCOLOR
+  !endif
   !define MUI_TEXTCOLOR "F3EFFC"
-  !define MUI_HEADERIMAGE_RIGHT
   BrandingText "ESMP Launcher"
 !macroend
