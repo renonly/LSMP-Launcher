@@ -304,3 +304,69 @@ api.onUpdate(showUpdate);
   const session = await api.session();
   if (session) enter(session);
 })();
+
+// ---------- aparência (guardada no localStorage) ----------
+const LOOK_DEFAULT = { theme: "violet", aurora: true, particles: true, anim: true, compact: false, glass: 75 };
+let look = { ...LOOK_DEFAULT };
+try { Object.assign(look, JSON.parse(localStorage.getItem("look") || "{}")); } catch {}
+function applyLookUI() {
+  const r = document.documentElement;
+  r.dataset.theme = look.theme;
+  r.style.setProperty("--glass", look.glass / 100);
+  r.classList.toggle("no-aurora", !look.aurora);
+  r.classList.toggle("no-particles", !look.particles);
+  r.classList.toggle("no-anim", !look.anim);
+  r.classList.toggle("compact", look.compact);
+  document.querySelectorAll("#swatches button").forEach((b) => b.classList.toggle("on", b.dataset.theme === look.theme));
+  $("s-aurora").checked = look.aurora; $("s-particles").checked = look.particles;
+  $("s-anim").checked = look.anim; $("s-compact").checked = look.compact; $("s-glass").value = look.glass;
+  fxColor(); moveInd();
+}
+function setLook(p) { Object.assign(look, p); try { localStorage.setItem("look", JSON.stringify(look)); } catch {} applyLookUI(); }
+$("swatches").onclick = (e) => { const b = e.target.closest("button"); if (b) setLook({ theme: b.dataset.theme }); };
+$("s-aurora").onchange = (e) => setLook({ aurora: e.target.checked });
+$("s-particles").onchange = (e) => setLook({ particles: e.target.checked });
+$("s-anim").onchange = (e) => setLook({ anim: e.target.checked });
+$("s-compact").onchange = (e) => setLook({ compact: e.target.checked });
+$("s-glass").oninput = (e) => setLook({ glass: +e.target.value });
+
+// indicador deslizante do menu
+function moveInd() {
+  const a = document.querySelector("#nav button.active"), ind = $("nav-ind");
+  if (a && ind) { ind.style.width = a.offsetWidth + "px"; ind.style.transform = `translateX(${a.offsetLeft}px)`; }
+}
+new MutationObserver(moveInd).observe($("nav"), { subtree: true, attributes: true, attributeFilter: ["class"] });
+setTimeout(moveInd, 50); addEventListener("resize", moveInd);
+$("app").addEventListener("animationend", moveInd);
+
+// efeito ripple nos botões
+document.addEventListener("pointerdown", (e) => {
+  const b = e.target.closest(".solid, .outline, .danger"); if (!b || b.disabled || !look.anim) return;
+  const r = b.getBoundingClientRect(), s = Math.max(r.width, r.height) / 4;
+  const d = document.createElement("span"); d.className = "ripple";
+  d.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX - r.left - s / 2}px;top:${e.clientY - r.top - s / 2}px`;
+  b.append(d); setTimeout(() => d.remove(), 650);
+});
+
+// partículas flutuantes
+const cv = $("fx"), cx = cv.getContext("2d"); let pts = [], fxRGB = "139,92,246";
+function fxColor() { fxRGB = getComputedStyle(document.documentElement).getPropertyValue("--accent-rgb").trim() || fxRGB; }
+function fxResize() {
+  cv.width = innerWidth; cv.height = innerHeight;
+  pts = Array.from({ length: Math.min(60, Math.floor(innerWidth / 22)) }, () => ({
+    x: Math.random() * cv.width, y: Math.random() * cv.height, r: Math.random() * 2 + .6,
+    v: Math.random() * .35 + .12, d: Math.random() * 6.28, a: Math.random() * .5 + .15,
+  }));
+}
+function fxTick() {
+  requestAnimationFrame(fxTick);
+  if (!look.particles || document.hidden) return;
+  cx.clearRect(0, 0, cv.width, cv.height);
+  for (const p of pts) {
+    p.y -= p.v; p.d += .01; p.x += Math.sin(p.d) * .3;
+    if (p.y < -5) { p.y = cv.height + 5; p.x = Math.random() * cv.width; }
+    cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283);
+    cx.fillStyle = `rgba(${fxRGB},${p.a})`; cx.shadowColor = `rgba(${fxRGB},.9)`; cx.shadowBlur = 8; cx.fill();
+  }
+}
+addEventListener("resize", fxResize); fxResize(); applyLookUI(); fxTick();
