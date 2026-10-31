@@ -329,24 +329,21 @@ api.onUpdate(showUpdate);
 })();
 
 // ---------- aparência (guardada no localStorage) ----------
-const LOOK_DEFAULT = { theme: "violet", aurora: true, particles: true, anim: true, compact: false, glass: 75 };
+const LOOK_DEFAULT = { aurora: true, particles: true, anim: true, compact: false, glass: 75 };
 let look = { ...LOOK_DEFAULT };
 try { Object.assign(look, JSON.parse(localStorage.getItem("look") || "{}")); } catch {}
 function applyLookUI() {
   const r = document.documentElement;
-  r.dataset.theme = look.theme;
   r.style.setProperty("--glass", look.glass / 100);
   r.classList.toggle("no-aurora", !look.aurora);
   r.classList.toggle("no-particles", !look.particles);
   r.classList.toggle("no-anim", !look.anim);
   r.classList.toggle("compact", look.compact);
-  document.querySelectorAll("#swatches button").forEach((b) => b.classList.toggle("on", b.dataset.theme === look.theme));
   $("s-aurora").checked = look.aurora; $("s-particles").checked = look.particles;
   $("s-anim").checked = look.anim; $("s-compact").checked = look.compact; $("s-glass").value = look.glass;
   fxColor(); moveInd();
 }
 function setLook(p) { Object.assign(look, p); try { localStorage.setItem("look", JSON.stringify(look)); } catch {} applyLookUI(); }
-$("swatches").onclick = (e) => { const b = e.target.closest("button"); if (b) setLook({ theme: b.dataset.theme }); };
 $("s-aurora").onchange = (e) => setLook({ aurora: e.target.checked });
 $("s-particles").onchange = (e) => setLook({ particles: e.target.checked });
 $("s-anim").onchange = (e) => setLook({ anim: e.target.checked });
