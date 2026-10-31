@@ -18,3 +18,11 @@ jobs:
       - run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # instalador customizado (embute o instalador acima e vai pra mesma release)
+      - run: node installer/prepare.js
+      - run: npm --prefix installer install
+      - run: npm --prefix installer run dist
+      - run: gh release upload "${{ github.ref_name }}" installer/dist/Instalar-ESMP.exe --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
