@@ -1,6 +1,6 @@
 const $ = (id) => document.getElementById(id);
 const api = window.lsmp;
-const state = { cfg: null, s: null, session: null, status: null, busy: false, running: false, pack: null, shot: null };
+const state = { installed: true, cfg: null, s: null, session: null, status: null, busy: false, running: false, pack: null, shot: null };
 const COLORS = ["#4ade80", "#38bdf8", "#a78bfa", "#f472b6", "#fb923c", "#facc15", "#f87171", "#2dd4bf"];
 
 function toast(msg) {
@@ -72,7 +72,7 @@ function enter(session) {
   $("auth").hidden = true; $("app").hidden = false;
   $("who").textContent = session.username;
   $("avatar").textContent = session.username[0].toUpperCase();
-  go("play"); refreshStatus(); loadNews(true); loadPackChip();
+  go("play"); refreshStatus(); loadNews(true); loadPackChip(); refreshInstalled();
 }
 
 // ---------- aparência ----------
@@ -176,6 +176,14 @@ async function loadNews(small) {
   }));
 }
 
+// ---------- instalado? (o botao principal vira "Instalar" quando nao ha jogo) ----------
+function updatePlayBtn() { $("play").textContent = state.installed ? "Jogar" : "Instalar"; }
+async function refreshInstalled() {
+  try { state.installed = !!(await api.installed()); } catch { state.installed = true; }
+  updatePlayBtn();
+}
+async function installGame() { if (!state.busy && !state.running) await runSync(false, true); }
+
 // ---------- pack ----------
 async function loadPackChip() {
   const r = await api.packInfo();
@@ -231,14 +239,14 @@ function renderSettingsPackInfo() {
 }
 ["pack-search", "pack-kind", "pack-filter", "pack-sort"].forEach((id) => $(id).addEventListener("input", renderPack));
 
-async function runSync(force) {
+async function runSync(force, installing) {
   if (state.busy) return;
   setBusy(true); $("game-error").textContent = ""; $("pack-error").textContent = ""; $("s-sync-error").textContent = "";
   const r = await api.sync(force);
   setBusy(false);
   if (!r.ok) { $("game-error").textContent = r.error; $("pack-error").textContent = r.error; $("s-sync-error").textContent = r.error; }
-  else toast(force ? "Arquivos reparados!" : "Pack verificado e atualizado!");
-  loadPack();
+  else toast(installing ? "Minecraft instalado! Clique em Jogar." : force ? "Arquivos reparados!" : "Pack verificado e atualizado!");
+  loadPack(); refreshInstalled();
 }
 const confirmRepair = () => confirm("Reparar vai baixar TODOS os arquivos do pack de novo. Para só atualizar o que mudou, use 'Verificar atualizações' (Ajustes → Jogo). Continuar?") && runSync(true);
 $("pack-update").onclick = () => runSync(false);
@@ -255,7 +263,7 @@ $("s-uninstall").onclick = async () => {
   if (d.cancelled) return;
   if (!d.removed) { toast(d.reason || "Nada para desinstalar."); return; }
   toast(d.kept ? "Minecraft desinstalado (mundos e capturas mantidos)." : "Minecraft desinstalado.");
-  loadPack();   // atualiza o status: os arquivos agora aparecem como faltando
+  loadPack(); refreshInstalled();   // o botao principal volta a ser "Instalar"
 };
 
 // ---------- capturas ----------
@@ -299,11 +307,12 @@ api.on("log", (l) => {
 });
 api.on("started", () => { setBusy(false); setRunning(true); $("progress").hidden = true; $("s-progress").hidden = true; });
 api.on("closed", (code) => {
-  setRunning(false); setBusy(false);
+  setRunning(false); setBusy(false); refreshInstalled();
   if (code) { $("game-error").textContent = `O jogo fechou com erro (código ${code}). Veja a aba Console.`; }
 });
 $("play").onclick = async () => {
   if (state.busy || state.running) return;
+  if (!state.installed) return installGame();   // sem jogo instalado: so baixa o pack (nao abre o jogo)
   $("game-error").textContent = ""; setBusy(true);
   const r = await api.play();
   if (!r.ok) { setBusy(false); $("game-error").textContent = r.error; }
