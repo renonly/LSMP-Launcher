@@ -5,6 +5,7 @@ const { spawnSync, spawn } = require("child_process");
 const { app } = require("electron");
 const cfg = require("./config");
 const updater = require("./updater");
+const { neoJvmArgs, tailLogs } = require("./neoargs");
 
 const gameDir = () => path.join(app.getPath("userData"), "instance");
 
@@ -169,7 +170,7 @@ async function play(session, s, send) {
   );
   launcher.on("debug", log);
   launcher.on("data", log);
-  launcher.on("close", (code) => send("closed", code));
+  launcher.on("close", (code) => { if (code) tailLogs(root, log); send("closed", code); });
 
   const opts = {
     // Sessão do SMP: nome + UUID vindos da sua API.
@@ -191,7 +192,9 @@ async function play(session, s, send) {
     // customArgs: [`-javaagent:${path.join(root, "authlib-injector.jar")}=${cfg.API_URL}`],
   };
   if (s.javaPath) opts.javaPath = s.javaPath;
-  const extra = [...(PRESETS[s.jvmPreset] || []), ...s.jvmArgs.split(/\s+/).filter(Boolean)];
+  opts.detached = false; // sem janela de console solta do Java
+  const neoArgs = loaderType === "neoforge" ? neoJvmArgs(root, fabricId, log) : [];
+  const extra = [...neoArgs, ...(PRESETS[s.jvmPreset] || []), ...s.jvmArgs.split(/\s+/).filter(Boolean)];
   if (extra.length) opts.customArgs = extra;
   if (s.fullscreen) opts.window = { fullscreen: true };
   else if (s.width && s.height) opts.window = { width: s.width, height: s.height };
