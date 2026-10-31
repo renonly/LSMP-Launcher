@@ -79,10 +79,6 @@
               <div><b id="latest-title"></b><p id="latest-body"></p></div>
               <button class="ghost small" data-goto="news">Ver tudo</button>
             </div>
-            <div class="rail-card">
-              <label class="ram" for="ram"><span>Memória RAM <b id="ram-val">4</b> GB</span><input id="ram" type="range" min="2" max="16" step="1" value="4" /></label>
-              <button id="play-repair" class="outline small" title="Baixa todos os arquivos do pack de novo">Reparar arquivos</button>
-            </div>
           </aside>
 
           <div class="dock">
@@ -107,19 +103,21 @@
 
       <!-- MODS -->
       <section class="view panel" data-view="pack" hidden>
-        <h2>Pack de mods</h2>
-        <div class="stats" id="pack-stats"></div>
-        <div id="pack-banner" class="stats"></div>
+        <div class="panel-head"><h2>Pack de mods</h2><div class="stats" id="pack-stats"></div></div>
+        <div id="pack-banner" class="banner" hidden>
+          <span id="pack-banner-text"></span>
+          <button id="pack-update" class="solid small" hidden>Atualizar agora</button>
+        </div>
         <p id="pack-error" class="error" role="alert"></p>
         <div class="toolbar">
-          <input id="pack-search" type="search" placeholder="Buscar mod…" />
-          <select id="pack-filter"><option value="all">Todos</option><option value="ok">Instalados</option><option value="miss">Faltando</option></select>
-          <select id="pack-sort"><option value="name">Nome</option><option value="size">Tamanho</option></select>
-          <button id="pack-update" class="solid">Verificar atualizações</button>
-          <button id="repair" class="outline" title="Baixa todos os arquivos do pack de novo">Reparar (rebaixar tudo)</button>
-          <button class="outline" data-open-dir>Pasta do jogo</button>
+          <input id="pack-search" type="search" placeholder="Buscar no pack…" />
+          <select id="pack-kind" title="Tipo"><option value="all">Tudo</option><option value="mods">Mods</option><option value="shaderpacks">Shaders</option><option value="resourcepacks">Resource packs</option><option value="config">Configs</option></select>
+          <select id="pack-filter" title="Status"><option value="all">Qualquer status</option><option value="ok">Instalados</option><option value="outdated">Desatualizados</option><option value="miss">Faltando</option></select>
+          <select id="pack-sort" title="Ordenar"><option value="name">Nome</option><option value="size">Tamanho</option><option value="status">Problemas primeiro</option></select>
         </div>
         <div class="list" id="pack-list"></div>
+        <p class="note" id="pack-empty" hidden>Nenhum arquivo encontrado com esses filtros.</p>
+        <p class="note foot">Verificar atualizações e reparar arquivos ficam em <a href="#" data-goto="settings">Ajustes → Jogo</a>.</p>
       </section>
 
       <!-- CAPTURAS -->
@@ -148,6 +146,20 @@
         </div>
 
         <div class="sub-pane" data-pane="game">
+          <div class="group">
+            <h3>Arquivos do pack</h3>
+            <p class="note" id="s-pack-info">Carregando…</p>
+            <div class="btn-row">
+              <button id="s-check" class="solid small">Verificar atualizações</button>
+              <button id="s-repair" class="outline small" title="Baixa todos os arquivos do pack de novo">Reparar arquivos</button>
+              <button class="outline small" data-open-dir>Abrir pasta do jogo</button>
+            </div>
+            <div class="mini-progress" id="s-progress" hidden>
+              <div class="progress-text"><span id="s-stage"></span><span id="s-file"></span></div>
+              <div class="bar"><div id="s-bar-fill"></div></div>
+            </div>
+            <p id="s-sync-error" class="error" role="alert"></p>
+          </div>
           <div class="group">
             <h3>Memória</h3>
             <label class="ram wide" for="s-ram"><span>RAM para o jogo: <b id="s-ram-val">4</b> GB <small id="s-ram-hint"></small></span>
@@ -189,17 +201,6 @@
         </div>
 
         <div class="sub-pane" data-pane="look" hidden>
-          <div class="group">
-            <h3>Cor do tema</h3>
-            <div class="swatches" id="swatches">
-              <button data-theme="violet" title="Violeta"></button>
-              <button data-theme="rose" title="Rosé"></button>
-              <button data-theme="ocean" title="Oceano"></button>
-              <button data-theme="emerald" title="Esmeralda"></button>
-              <button data-theme="amber" title="Âmbar"></button>
-              <button data-theme="sakura" title="Sakura"></button>
-            </div>
-          </div>
           <div class="group">
             <h3>Efeitos</h3>
             <label class="switch"><input id="s-aurora" type="checkbox" /><span>Fundo animado (aurora)</span></label>
