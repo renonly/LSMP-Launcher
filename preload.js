@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld("lsmp", {
   play: inv("game:play"),
   stop: inv("game:stop"),
   sync: inv("game:sync"),
+  uninstall: inv("game:uninstall"),
   on: (ch, fn) => ipcRenderer.on(`game:${ch}`, (_e, d) => fn(d)),
   config: inv("config"),
   getSettings: inv("settings:get"),
