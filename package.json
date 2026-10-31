@@ -45,7 +45,7 @@
       {
         "provider": "github",
         "owner": "renonly",
-        "repo": "LSMP-Launcher",
+        "repo": "ESMP-Launcher",
         "releaseType": "release"
       }
     ]
