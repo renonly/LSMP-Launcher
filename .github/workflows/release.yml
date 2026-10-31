@@ -21,8 +21,11 @@ jobs:
 
       # instalador customizado (embute o instalador acima e vai pra mesma release)
       - run: node installer/prepare.js
-      - run: npm --prefix installer install
-      - run: npm --prefix installer run dist
+      - run: npm install
+        working-directory: installer
+      - run: npm run dist
+        working-directory: installer
+        timeout-minutes: 15
       - run: gh release upload "${{ github.ref_name }}" installer/dist/Instalar-ESMP.exe --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
