@@ -1,98 +1,281 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, net } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, clipboard, dialog } = require("electron");
+const { autoUpdater } = require("electron-updater");
+const { pathToFileURL } = require("url");
+const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const os = require("os");
-const { exec } = require("child_process");
+const auth = require("./src/auth");
+const game = require("./src/game");
+const updater = require("./src/updater");
+const status = require("./src/status");
+const settings = require("./src/settings");
+const stats = require("./src/stats");
+const news = require("./src/news");
+const cfg = require("./src/config");
 
-const PRODUCT = "ESMP Launcher";
+if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
+
 let win;
+let running = false;
+let gameProc = null;
+let startedAt = 0;
 
-if (!app.requestSingleInstanceLock()) app.quit();
+const userFile = (n) => path.join(app.getPath("userData"), n);
+const log = (...a) => {
+  try {
+    fs.appendFileSync(userFile("launcher.log"),
+      `[${new Date().toISOString()}] ${a.map((x) => (x instanceof Error ? x.stack : String(x))).join(" ")}\n`);
+  } catch {}
+};
+
+// proteção: erro inesperado vai pro launcher.log em vez de derrubar o app em silêncio
+process.on("uncaughtException", (e) => log("uncaughtException", e));
+process.on("unhandledRejection", (e) => log("unhandledRejection", e instanceof Error ? e : new Error(String(e))));
+app.on("child-process-gone", (_e, d) => log("child-process-gone", JSON.stringify(d)));
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 800, height: 480, resizable: false, maximizable: false, frame: false, show: false,
-    backgroundColor: "#0a0614", title: "Instalar ESMP",
-    icon: path.join(__dirname, "build", "icon.png"),
+    width: 1100, height: 680, minWidth: 900, minHeight: 600,
+    frame: false, backgroundColor: "#0a0614", show: false,
+    icon: fs.existsSync(path.join(__dirname, "build", "icon.png"))
+      ? path.join(__dirname, "build", "icon.png") : undefined,
     webPreferences: { preload: path.join(__dirname, "preload.js"), contextIsolation: true, nodeIntegration: false },
   });
   win.once("ready-to-show", () => win.show());
+  setTimeout(() => { if (win && !win.isVisible()) win.show(); }, 4000);
   win.loadFile(path.join(__dirname, "renderer", "index.html"));
+  // diagnóstico: tudo que der errado na tela vai pro launcher.log
+  win.webContents.on("console-message", (_e, level, msg, line, src) => { if (level >= 2) log("renderer:", msg, `(${src}:${line})`); });
+  win.webContents.on("render-process-gone", (_e, d) => log("render-process-gone", JSON.stringify(d)));
+  win.webContents.on("unresponsive", () => log("janela não está respondendo"));
+  win.webContents.on("preload-error", (_e, p, err) => log("preload-error", p, err));
+  win.webContents.on("did-fail-load", (_e, code, desc) => log("did-fail-load", code, desc));
+  // F12 ou Ctrl+Shift+I abre o DevTools
+  win.webContents.on("before-input-event", (_e, i) => {
+    if (i.type === "keyDown" && (i.key === "F12" || (i.control && i.shift && i.key.toLowerCase() === "i")))
+      win.webContents.toggleDevTools();
+  });
+  win.webContents.once("did-finish-load", () => setTimeout(() => checkUpdates(false), 2500));
 }
+app.on("second-instance", () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+
+// ================= AUTO-UPDATE DO LAUNCHER =================
+// Estados: idle | checking | downloading | ready | none | manual | error | dev
+let upd = { state: "idle", current: app.getVersion() };
+const setUpd = (state, extra = {}) => {
+  upd = { state, current: app.getVersion(), ...extra };
+  if (win && !win.isDestroyed()) win.webContents.send("update:status", upd);
+};
+const newer = (a, b) => { // a > b ?
+  const p = (v) => String(v).replace(/^v/, "").split(".").map((n) => parseInt(n, 10) || 0);
+  const [x, y] = [p(a), p(b)];
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return false;
+};
+
+// Plano B: se o electron-updater falhar, consulta a Release no GitHub
+// e avisa com link pra baixar o instalador novo.
+async function fallbackCheck(reason) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${cfg.GITHUB_REPO}/releases/latest`, {
+      headers: { "user-agent": "lsmp-launcher" }, signal: AbortSignal.timeout(10000),
+    });
+    if (res.status === 404) return setUpd("error", { message: "Repositório sem Release pública. O repositório precisa ser público e ter uma Release publicada." });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const r = await res.json();
+    if (newer(r.tag_name, app.getVersion()))
+      return setUpd("manual", { version: r.tag_name.replace(/^v/, ""), url: r.html_url, message: reason });
+    setUpd("none");
+  } catch (e) {
+    setUpd("error", { message: "Não consegui verificar atualizações. Verifique sua internet." });
+  }
+}
+
+function initUpdater() {
+  autoUpdater.logger = { info: log, warn: log, error: log, debug() {} };
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+  autoUpdater.allowPrerelease = false;
+  autoUpdater.on("checking-for-update", () => setUpd("checking"));
+  autoUpdater.on("update-available", (i) => setUpd("downloading", { version: i.version, percent: 0 }));
+  autoUpdater.on("update-not-available", () => setUpd("none"));
+  autoUpdater.on("download-progress", (p) =>
+    setUpd("downloading", { version: upd.version, percent: Math.round(p.percent || 0) }));
+  autoUpdater.on("update-downloaded", (i) => setUpd("ready", { version: i.version }));
+  autoUpdater.on("error", (e) => { log("updater error", e); fallbackCheck(String(e && e.message || e).slice(0, 200)); });
+}
+
+async function checkUpdates(manual) {
+  if (!app.isPackaged) { setUpd("dev"); return upd; }
+  if (["checking", "downloading", "ready"].includes(upd.state)) return upd;
+  setUpd("checking");
+  try { await autoUpdater.checkForUpdates(); }
+  catch (e) { log("check failed", e); await fallbackCheck(String(e.message || e).slice(0, 200)); }
+  return upd;
+}
+
+initUpdater();
+setInterval(() => checkUpdates(false), 20 * 60 * 1000);
+
+ipcMain.handle("update:state", () => upd);
+ipcMain.handle("update:check", () => checkUpdates(true));
+ipcMain.on("update:install", () => {
+  if (upd.state === "ready") setImmediate(() => autoUpdater.quitAndInstall(true, true));
+});
+
+// ================= IPC =================
+const wrap = (fn) => async (_e, ...args) => {
+  try { return { ok: true, data: await fn(...args) }; }
+  catch (err) { return { ok: false, error: err.message }; }
+};
+const toRenderer = (ch, data) => {
+  if (win && !win.isDestroyed()) win.webContents.send(`game:${ch}`, data);
+};
+const bgUrl = (s) => (s.bgPath && fs.existsSync(s.bgPath) ? pathToFileURL(s.bgPath).href : "");
+const withBg = (s) => ({ ...s, bgUrl: bgUrl(s) });
+
+ipcMain.handle("auth:session", () => auth.load());
+ipcMain.handle("auth:login", wrap(auth.login));
+ipcMain.handle("auth:register", wrap(auth.register));
+ipcMain.handle("auth:logout", () => auth.logout());
+
+ipcMain.handle("config", () => ({
+  name: cfg.SERVER_NAME, mc: cfg.MC_VERSION, host: cfg.SERVER_HOST, port: cfg.SERVER_PORT,
+  maxRam: Math.min(32, Math.max(2, Math.floor(os.totalmem() / 1024 ** 3))),
+  totalRam: Math.round(os.totalmem() / 1024 ** 3),
+  version: app.getVersion(), repo: cfg.GITHUB_REPO, packaged: app.isPackaged,
+}));
+
+ipcMain.handle("settings:get", () => withBg(settings.load()));
+ipcMain.handle("settings:set", (_e, patch) => {
+  const s = settings.save(patch);
+  if (patch && "launchAtStartup" in patch && app.isPackaged)
+    app.setLoginItemSettings({ openAtLogin: s.launchAtStartup });
+  return withBg(s);
+});
+ipcMain.handle("settings:reset", () => withBg(settings.reset()));
+ipcMain.handle("status:server", () => status.ping(cfg.SERVER_HOST, cfg.SERVER_PORT));
+ipcMain.handle("pack:info", wrap(() => updater.info(game.gameDir())));
+ipcMain.handle("stats", () => stats.load());
+ipcMain.handle("news", () => news.get());
+
+// fundo personalizado
+ipcMain.handle("bg:choose", async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: "Escolher imagem de fundo", properties: ["openFile"],
+    filters: [{ name: "Imagens", extensions: ["png", "jpg", "jpeg", "webp", "gif"] }],
+  });
+  if (r.canceled || !r.filePaths[0]) return withBg(settings.load());
+  const ext = path.extname(r.filePaths[0]).toLowerCase();
+  const dest = userFile(`background-${Date.now()}${ext}`);
+  fs.copyFileSync(r.filePaths[0], dest);
+  const old = settings.load().bgPath;
+  const s = settings.save({ bgPath: dest });
+  if (old && old !== dest) try { fs.unlinkSync(old); } catch {}
+  return withBg(s);
+});
+ipcMain.handle("bg:clear", () => {
+  const old = settings.load().bgPath;
+  if (old) try { fs.unlinkSync(old); } catch {}
+  return withBg(settings.save({ bgPath: "" }));
+});
+
+// Java
+ipcMain.handle("java:detect", () => game.detectJava());
+ipcMain.handle("java:choose", async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: "Escolher o java.exe", properties: ["openFile"],
+    filters: process.platform === "win32" ? [{ name: "Java", extensions: ["exe"] }] : [],
+  });
+  return r.canceled ? "" : r.filePaths[0];
+});
+
+// capturas de tela
+const shotsDir = () => path.join(game.gameDir(), "screenshots");
+ipcMain.handle("shots:list", () => {
+  const dir = shotsDir();
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir)
+    .filter((f) => /\.(png|jpe?g)$/i.test(f))
+    .map((f) => { const p = path.join(dir, f); return { name: f, path: p, url: pathToFileURL(p).href, time: fs.statSync(p).mtimeMs }; })
+    .sort((a, b) => b.time - a.time).slice(0, 80);
+});
+ipcMain.handle("shots:show", (_e, p) => {
+  if (path.resolve(p).startsWith(path.resolve(shotsDir()))) shell.showItemInFolder(p);
+});
+
+// pastas / links
+ipcMain.handle("shell:openGame", () => { fs.mkdirSync(game.gameDir(), { recursive: true }); return shell.openPath(game.gameDir()); });
+ipcMain.handle("shell:openShots", () => { fs.mkdirSync(shotsDir(), { recursive: true }); return shell.openPath(shotsDir()); });
+ipcMain.handle("shell:openData", () => shell.openPath(app.getPath("userData")));
+ipcMain.handle("shell:openLog", () => shell.openPath(userFile("launcher.log")));
+ipcMain.handle("shell:external", (_e, url) => {
+  if (/^https:\/\/github\.com\//.test(String(url))) shell.openExternal(url);
+});
+ipcMain.on("clipboard:copy", (_e, text) => clipboard.writeText(String(text)));
+
+// jogo
+ipcMain.handle("game:play", wrap(async () => {
+  if (running) throw new Error("O jogo já está em execução.");
+  const session = auth.load();
+  if (!session) throw new Error("Faça login primeiro.");
+  const s = settings.load();
+  running = true;
+  try {
+    gameProc = await game.play(session, s, (ch, data) => {
+      toRenderer(ch, data);
+      if (ch === "started") {
+        startedAt = Date.now();
+        stats.launched();
+        if (s.onLaunch === "minimize") win.minimize();
+        if (s.onLaunch === "quit") setTimeout(() => app.quit(), 1500);
+      }
+      if (ch === "closed") {
+        running = false; gameProc = null;
+        if (startedAt) stats.played(Date.now() - startedAt);
+        startedAt = 0;
+        if (s.onLaunch === "minimize" && win && !win.isDestroyed()) { win.restore(); win.focus(); }
+      }
+    });
+  } catch (err) { running = false; throw err; }
+}));
+ipcMain.handle("game:stop", () => { if (gameProc) gameProc.kill(); });
+ipcMain.handle("game:sync", wrap(async (force) => {
+  if (running) throw new Error("Feche o jogo antes de verificar os arquivos.");
+  running = true;
+  try { await game.syncOnly(!!force, toRenderer); }
+  finally { running = false; }
+}));
+
+ipcMain.handle("game:uninstall", wrap(async () => {
+  if (running) throw new Error("Feche o jogo antes de desinstalar.");
+  const dir = game.gameDir();
+  if (path.basename(dir) !== "instance") throw new Error("Pasta do jogo inesperada, nada foi apagado.");   // trava de seguranca
+  if (!fs.existsSync(dir)) return { removed: false, reason: "Nada instalado." };
+  const { response } = await dialog.showMessageBox(win, {
+    type: "warning", title: "Desinstalar Minecraft", noLink: true, cancelId: 0, defaultId: 0,
+    buttons: ["Cancelar", "Desinstalar (manter mundos e capturas)", "Desinstalar tudo"],
+    message: "Desinstalar o Minecraft do ESMP?",
+    detail: "Apaga os mods, configs e arquivos do jogo deste computador. Sua conta e os ajustes do launcher não são afetados.\n\n" +
+            "\"Manter mundos e capturas\" preserva as pastas saves e screenshots. \"Desinstalar tudo\" apaga também seus mundos do singleplayer.",
+  });
+  if (response === 0) return { removed: false, cancelled: true };
+  running = true;   // evita sincronizar/abrir o jogo no meio da remocao
+  try {
+    const keep = response === 1 ? new Set(["saves", "screenshots"]) : new Set();
+    const opts = { recursive: true, force: true, maxRetries: 5, retryDelay: 300 };   // Windows as vezes segura o arquivo por um instante
+    if (keep.size === 0) fs.rmSync(dir, opts);
+    else for (const name of fs.readdirSync(dir)) if (!keep.has(name)) fs.rmSync(path.join(dir, name), opts);
+  } finally { running = false; }
+  return { removed: true, kept: response === 1 };
+}));
+
+ipcMain.on("win", (_e, action) => {
+  if (!win || win.isDestroyed()) return;
+  if (action === "min") win.minimize();
+  if (action === "max") win.isMaximized() ? win.unmaximize() : win.maximize();
+  if (action === "close") win.close();
+});
+
 app.whenReady().then(createWindow);
 app.on("window-all-closed", () => app.quit());
-
-const defaultDir = () => path.join(process.env.LOCALAPPDATA || app.getPath("appData"), "Programs", PRODUCT);
-const REPO = "renonly/ESMP-Launcher";
-const UA = { "User-Agent": "ESMP-Installer", Accept: "application/vnd.github+json" };
-const send = (ch, d) => { if (win && !win.isDestroyed()) win.webContents.send(ch, d); };
-
-// o instalador do launcher (NSIS) é baixado da última release (assim este .exe fica leve)
-async function findSetup() {
-  const r = await net.fetch(`https://api.github.com/repos/${REPO}/releases/latest`, { headers: UA });
-  if (!r.ok) throw new Error(`Não consegui consultar a última versão (erro ${r.status}). Tente de novo em instantes.`);
-  const rel = await r.json();
-  const a = (rel.assets || []).find((x) => /^ESMP-Launcher-Setup-.*\.exe$/i.test(x.name));
-  if (!a) throw new Error("A última versão não tem o instalador anexado.");
-  return a.browser_download_url;
-}
-async function download(url, dest) {
-  const res = await net.fetch(url, { headers: { "User-Agent": "ESMP-Installer" } });
-  if (!res.ok || !res.body) throw new Error(`Falha ao baixar o launcher (erro ${res.status}).`);
-  const total = Number(res.headers.get("content-length")) || 0;
-  const out = fs.createWriteStream(dest);
-  const reader = res.body.getReader();
-  let got = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    got += value.length;
-    if (!out.write(value)) await new Promise((ok) => out.once("drain", ok));
-    send("progress", total ? got / total : 0);
-  }
-  await new Promise((ok) => out.end(ok));
-}
-
-ipcMain.handle("defaultDir", () => defaultDir());
-ipcMain.handle("chooseDir", async () => {
-  const r = await dialog.showOpenDialog(win, { title: "Onde instalar o ESMP?", properties: ["openDirectory", "createDirectory"] });
-  if (r.canceled || !r.filePaths[0]) return null;
-  const p = r.filePaths[0];
-  // se escolheu uma pasta qualquer, instala numa subpasta própria (não bagunça a pasta escolhida)
-  return path.basename(p).toLowerCase() === PRODUCT.toLowerCase() ? p : path.join(p, PRODUCT);
-});
-
-ipcMain.handle("install", async (_e, dir) => {
-  dir = String(dir || "").trim().replace(/[\\/]+$/, "");
-  if (!/^[a-zA-Z]:\\/.test(dir) || /["&|^%<>]/.test(dir)) return { ok: false, error: "Pasta inválida. Use um caminho como C:\\Games\\ESMP (sem & % ^ | < >)." };
-  try { fs.mkdirSync(dir, { recursive: true }); fs.accessSync(dir, fs.constants.W_OK); }
-  catch { return { ok: false, error: "Sem permissão pra instalar nessa pasta. Escolha outra." }; }
-  const exe = path.join(os.tmpdir(), `esmp-setup-${Date.now()}.exe`);
-  try {
-    send("phase", "download");
-    await download(await findSetup(), exe);
-  } catch (e) {
-    fs.rmSync(exe, { force: true });
-    return { ok: false, error: e.message || "Não foi possível baixar o launcher. Verifique sua internet." };
-  }
-  send("phase", "install");
-  // NSIS silencioso: /S sem janela; /D= precisa ser o último argumento e SEM aspas
-  return new Promise((resolve) => {
-    exec(`"${exe}" /S /D=${dir}`, { windowsHide: true }, (err) => {
-      fs.rmSync(exe, { force: true });
-      if (err) return resolve({ ok: false, error: `A instalação falhou (código ${err.code ?? "?"}). Feche o launcher se estiver aberto e tente de novo.` });
-      resolve(fs.existsSync(path.join(dir, `${PRODUCT}.exe`)) ? { ok: true } : { ok: false, error: "A instalação terminou, mas o programa não foi encontrado na pasta escolhida." });
-    });
-  });
-});
-
-ipcMain.handle("launch", async (_e, dir) => {
-  const main = path.join(String(dir), `${PRODUCT}.exe`);
-  if (fs.existsSync(main)) await shell.openPath(main);
-  app.quit();
-});
-ipcMain.on("win", (_e, a) => {
-  if (!win) return;
-  if (a === "min") win.minimize();
-  if (a === "close") app.quit();
-});
