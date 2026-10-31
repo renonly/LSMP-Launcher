@@ -33,6 +33,7 @@ document.addEventListener("click", (e) => {
   const g = e.target.closest("[data-goto]"); if (g) { e.preventDefault(); go(g.dataset.goto); }
   const w = e.target.closest("[data-win]"); if (w) api.win(w.dataset.win);
   if (e.target.closest("[data-open-dir]")) api.openGameDir();
+  const x = e.target.closest("a[data-ext]"); if (x) { e.preventDefault(); api.openExternal(x.dataset.ext); }
 });
 $("subtabs").onclick = (e) => {
   const b = e.target.closest("button"); if (!b) return;
@@ -86,6 +87,71 @@ async function refreshStatus() {
   $("t-ping").textContent = st.online ? st.ping + " ms" : "—";
 }
 
+// ---------- markdown simples e seguro (so cria elementos DOM, nunca innerHTML) ----------
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+function mdInline(text, parent) {
+  // ordem: `codigo`, **negrito**, *italico*/_italico_, [texto](link), link solto
+  const re = /`([^`]+)`|\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\s][^*]*)\*|(?<![\w])_([^_\s][^_]*)_(?![\w])|\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<>)]+)/g;
+  let last = 0, m;
+  const link = (label, url) => { const a = el("a", "md-link", label); a.href = "#"; a.dataset.ext = url; a.title = url; return a; };
+  while ((m = re.exec(text))) {
+    if (m.index > last) parent.append(text.slice(last, m.index));
+    if (m[1] != null) parent.append(el("code", null, m[1]));
+    else if (m[2] != null || m[3] != null) { const b = el("strong"); mdInline(m[2] ?? m[3], b); parent.append(b); }
+    else if (m[4] != null || m[5] != null) { const i = el("em"); mdInline(m[4] ?? m[5], i); parent.append(i); }
+    else if (m[6] != null) parent.append(link(m[6], m[7]));
+    else parent.append(link(m[8].replace(/[.,;:!?]+$/, ""), m[8].replace(/[.,;:!?]+$/, "")));
+    last = re.lastIndex;
+  }
+  if (last < text.length) parent.append(text.slice(last));
+}
+function renderMarkdown(src, skipTitles = []) {
+  const root = el("div", "md");
+  const lines = String(src || "").replace(/\r/g, "").split("\n");
+  let list = null, para = null, first = true;
+  const flush = () => { list = null; para = null; };
+  for (const raw of lines) {
+    const line = raw.trimEnd(), t = line.trim();
+    if (!t) { flush(); continue; }
+    let m;
+    if ((m = t.match(/^(#{1,6})\s+(.*)$/))) {
+      flush();
+      const title = m[2].trim();
+      // o 1º titulo costuma repetir o nome da versao que ja esta no cabecalho do cartao
+      if (first && skipTitles.some((s) => s && title.toLowerCase().includes(String(s).toLowerCase()))) { first = false; continue; }
+      first = false;
+      const h = el("h" + Math.min(6, Math.max(3, m[1].length + 1)), "md-h"); mdInline(title, h); root.append(h); continue;
+    }
+    first = false;
+    if (/^([-*_])\1{2,}$/.test(t)) { flush(); root.append(el("hr")); continue; }
+    if ((m = t.match(/^[-*+]\s+(.*)$/))) {
+      if (!list || list.tagName !== "UL") { list = el("ul"); root.append(list); para = null; }
+      const li = el("li"); mdInline(m[1], li); list.append(li); continue;
+    }
+    if ((m = t.match(/^\d+[.)]\s+(.*)$/))) {
+      if (!list || list.tagName !== "OL") { list = el("ol"); root.append(list); para = null; }
+      const li = el("li"); mdInline(m[1], li); list.append(li); continue;
+    }
+    if ((m = t.match(/^>\s?(.*)$/))) {
+      flush(); const q = el("blockquote"); mdInline(m[1], q); root.append(q); continue;
+    }
+    list = null;
+    if (!para) { para = el("p"); root.append(para); } else para.append(document.createElement("br"));
+    mdInline(t, para);
+  }
+  return root;
+}
+// resumo de uma linha para o cartao da tela inicial (sem simbolos de markdown)
+function mdSummary(body) {
+  for (const raw of String(body || "").split("\n")) {
+    let t = raw.trim();
+    if (!t || /^#{1,6}\s/.test(t) || /full changelog/i.test(t)) continue;
+    t = t.replace(/^([-*+]|\d+[.)]|>)\s+/, "").replace(/\*\*|__|`/g, "").replace(/\[([^\]]+)\]\([^)]*\)/g, "$1").trim();
+    if (t) return t;
+  }
+  return "";
+}
+
 // ---------- novidades ----------
 async function loadNews(small) {
   const list = await api.news();
@@ -93,7 +159,7 @@ async function loadNews(small) {
     $("latest").hidden = false;
     $("latest-tag").textContent = list[0].tag;
     $("latest-title").textContent = list[0].name;
-    $("latest-body").textContent = (list[0].body.replace(/[#*`>-]/g, "").split("\n").find((l) => l.trim()) || "").trim();
+    $("latest-body").textContent = mdSummary(list[0].body);
   }
   if (small) return;
   const box = $("news-list");
@@ -105,8 +171,8 @@ async function loadNews(small) {
     const b = document.createElement("b"); b.textContent = n.name;
     const dt = document.createElement("span"); dt.className = "d"; dt.textContent = fmtDate(n.date);
     h.append(t, b, dt);
-    const pre = document.createElement("pre"); pre.textContent = n.body || "Sem descrição.";
-    d.append(h, pre); return d;
+    const body = n.body ? renderMarkdown(n.body, [n.tag, n.name]) : el("p", "note", "Sem descrição.");
+    d.append(h, body); return d;
   }));
 }
 
