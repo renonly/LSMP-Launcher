@@ -33,14 +33,18 @@ button, input, select { font: inherit; color: inherit; }
 .no-particles #fx { display: none; }
 .no-anim *, .no-anim *::before, .no-anim *::after { animation: none !important; transition: none !important; }
 
-/* ===== lotus animada ===== */
-.lotus { --k: 1; width: calc(144px * var(--k)); height: calc(121px * var(--k));
-  background: url("lotus-strip.png") 0 0 / calc(10080px * var(--k)) 100% no-repeat;
-  animation: bloom 3.5s steps(70) infinite, glow 4s ease-in-out infinite alternate; }
+/* ===== lotus vetorial (nitida em qualquer tamanho) ===== */
+.lotus { --k: 1; width: calc(144px * var(--k)); aspect-ratio: 317 / 262; animation: glow 4s ease-in-out infinite alternate; }
 .lotus.xl { --k: 1.25; }
-@keyframes bloom { to { background-position: calc(-10080px * var(--k)) 0; } }
-@keyframes glow { from { filter: drop-shadow(0 0 8px rgba(var(--accent-rgb),.4)); } to { filter: drop-shadow(0 0 22px rgba(var(--accent-rgb),.85)); } }
-@media (prefers-reduced-motion: reduce) { .lotus { animation: none; background-position: calc(-3000px * var(--k)) 0; } }
+.lotus svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.lotus path { fill: #fff; transform-box: view-box; transform-origin: 50% 98%; animation: petal 1.5s var(--ease) both, sway 7s ease-in-out 1.6s infinite alternate; }
+.lotus path:nth-child(1) { --r: -38deg; animation-delay: .3s, 1.8s; } .lotus path:nth-child(5) { --r: 38deg; animation-delay: .3s, 1.8s; }
+.lotus path:nth-child(2) { --r: -22deg; animation-delay: .15s, 1.65s; } .lotus path:nth-child(4) { --r: 22deg; animation-delay: .15s, 1.65s; }
+.lotus path:nth-child(3) { --r: 0deg; }
+@keyframes petal { from { opacity: 0; transform: rotate(var(--r)) scale(.25); } }
+@keyframes sway { to { transform: scale(1.025); } }
+@keyframes glow { from { filter: drop-shadow(0 0 8px rgba(var(--accent-rgb,139,92,246),.4)); } to { filter: drop-shadow(0 0 22px rgba(var(--accent-rgb,139,92,246),.85)); } }
+@media (prefers-reduced-motion: reduce) { .lotus path { animation: none; } }
 
 /* ===== barra superior ===== */
 .dragbar { position: fixed; top: 0; left: 0; right: 0; height: 14px; -webkit-app-region: drag; z-index: 40; }
@@ -216,8 +220,6 @@ input[type=range] { accent-color: var(--accent); padding: 0; }
 
 /* ===== abertura (intro) ===== */
 .intro { position: fixed; inset: 0; z-index: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: radial-gradient(60% 55% at 50% 45%, #1a0d33, #0a0614 75%); transition: opacity 1s ease, visibility 1s; }
-.intro-lotus { width: 144px; height: 121px; background: url("lotus-strip.png") 0 0 / 10080px 100% no-repeat; animation: introIn 1.2s var(--ease) both, bloom1 2.2s steps(70) .2s both; filter: drop-shadow(0 0 26px rgba(139,92,246,.7)); }
-@keyframes bloom1 { to { background-position: -10080px 0; } }
 @keyframes introIn { from { opacity: 0; transform: scale(.85); } }
 .intro-name { font-size: 22px; letter-spacing: 14px; margin-right: -14px; color: #e9e1ff; animation: introIn 1.2s var(--ease) .5s both; }
 .intro-line { width: 120px; height: 2px; border-radius: 2px; background: linear-gradient(90deg, transparent, #8b5cf6, transparent); animation: introLine 1.6s ease .6s both; }
@@ -230,4 +232,5 @@ html.booting .app, html.booting .split { opacity: 0; }
 @keyframes topIn { from { opacity: 0; transform: translateY(-14px); } }
 .hero { animation: heroIn 1s var(--ease) .2s both; }
 @keyframes heroIn { from { opacity: 0; transform: translateX(-24px); } }
-@media (prefers-reduced-motion: reduce) { .intro-lotus { animation: none; background-position: -3000px 0; } }
+@media (prefers-reduced-motion: reduce) { 
+.intro-lotus { --k: 1.1; filter: drop-shadow(0 0 26px rgba(139,92,246,.7)); }

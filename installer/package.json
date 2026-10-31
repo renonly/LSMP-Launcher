@@ -4,42 +4,15 @@
   "description": "Instalador do ESMP Launcher",
   "main": "main.js",
   "author": "renonly",
-  "scripts": {
-    "start": "electron .",
-    "dist": "electron-builder --publish never"
-  },
-  "devDependencies": {
-    "electron": "^45.1.0",
-    "electron-builder": "^26.18.0"
-  },
+  "scripts": { "start": "electron .", "dist": "electron-builder --publish never" },
+  "devDependencies": { "electron": "^45.1.0", "electron-builder": "^26.18.0" },
   "build": {
     "appId": "com.esmp.installer",
     "productName": "Instalar ESMP",
-    "directories": {
-      "buildResources": "build",
-      "output": "dist"
-    },
-    "files": [
-      "main.js",
-      "preload.js",
-      "renderer/**/*",
-      "build/icon.png",
-      "!node_modules/**/*"
-    ],
-    "extraResources": [
-      {
-        "from": "payload",
-        "to": "payload"
-      }
-    ],
-    "win": {
-      "target": "portable",
-      "icon": "build/icon.ico"
-    },
-    "portable": {
-      "artifactName": "Instalar-ESMP.${ext}"
-    },
-    "npmRebuild": false,
-    "nodeGypRebuild": false
+    "directories": { "buildResources": "build", "output": "dist" },
+    "files": ["main.js", "preload.js", "renderer/**/*"],
+    "extraResources": [{ "from": "payload", "to": "payload" }],
+    "win": { "target": "portable", "icon": "build/icon.ico" },
+    "portable": { "artifactName": "Instalar-ESMP.${ext}" }
   }
 }

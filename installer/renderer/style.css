@@ -16,9 +16,14 @@ body { font: 14px/1.5 "Segoe UI", system-ui, sans-serif; color: var(--text); bac
 .shell { height: 100%; display: grid; grid-template-columns: 270px 1fr; animation: shellIn .9s var(--ease) both; }
 @keyframes shellIn { from { opacity: 0; transform: translateY(14px); } }
 .art { display: flex; flex-direction: column; align-items: center; padding: 44px 24px 24px; background: linear-gradient(180deg, rgba(139,92,246,.25), rgba(8,5,16,.55)); border-right: 1px solid var(--line); }
-.lotus { width: 144px; height: 121px; background: url("lotus-strip.png") 0 0 / 10080px 100% no-repeat; animation: bloom 3.5s steps(70) infinite, glow 4s ease-in-out infinite alternate; transform: scale(.85); }
-@keyframes bloom { to { background-position: -10080px 0; } }
 @keyframes glow { from { filter: drop-shadow(0 0 8px rgba(139,92,246,.4)); } to { filter: drop-shadow(0 0 22px rgba(139,92,246,.85)); } }
+.lotus { --k: 1; width: calc(144px * var(--k)); aspect-ratio: 317 / 262; animation: glow 4s ease-in-out infinite alternate; transform: scale(.85); }
+.lotus svg { width: 100%; height: 100%; overflow: visible; display: block; }
+.lotus path { fill: #fff; transform-box: view-box; transform-origin: 50% 98%; animation: petal 1.5s var(--ease) both, sway 7s ease-in-out 1.6s infinite alternate; }
+.lotus path:nth-child(1) { --r: -38deg; animation-delay: .3s, 1.8s; } .lotus path:nth-child(5) { --r: 38deg; animation-delay: .3s, 1.8s; }
+.lotus path:nth-child(2) { --r: -22deg; animation-delay: .15s, 1.65s; } .lotus path:nth-child(4) { --r: 22deg; animation-delay: .15s, 1.65s; }
+@keyframes petal { from { opacity: 0; transform: rotate(var(--r)) scale(.25); } }
+@keyframes sway { to { transform: scale(1.025); } }
 .art h2 { font-size: 26px; font-weight: 900; letter-spacing: 12px; margin: 6px -12px 0 0; background: linear-gradient(180deg,#fff,var(--accent-hover)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .steps { list-style: none; margin: auto 0 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 14px; }
 .steps li { display: flex; align-items: center; gap: 12px; color: var(--muted); transition: color .3s; }
