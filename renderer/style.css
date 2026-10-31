@@ -237,6 +237,12 @@ html.booting .app, html.booting .split { opacity: 0; }
 .item .ok, .item .miss { width: 18px; text-align: center; font-weight: 700; }
 .note.foot { margin-top: 14px; text-align: center; } .note.foot a { color: var(--accent-hover); }
 #pack-empty { text-align: center; padding: 24px 0; }
-.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.btn-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 18px; }
 .mini-progress { margin-top: 12px; }
 .group .note { margin: 0; }
+
+/* espacamento dos Arquivos do pack + zona de perigo */
+#s-pack-info { margin-bottom: 4px; line-height: 1.5; }
+.mini-progress { margin-top: 16px; }
+.danger-zone { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.danger-zone .note { margin: 0; }
