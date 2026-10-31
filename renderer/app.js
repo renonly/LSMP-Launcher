@@ -178,6 +178,19 @@ const confirmRepair = () => confirm("Reparar vai baixar TODOS os arquivos do pac
 $("pack-update").onclick = () => runSync(false);
 $("s-check").onclick = () => runSync(false);
 $("s-repair").onclick = confirmRepair;
+$("s-uninstall").onclick = async () => {
+  if (state.busy || state.running) return;
+  $("s-sync-error").textContent = "";
+  setBusy(true);   // trava os outros botoes enquanto apaga
+  const r = await api.uninstall();
+  setBusy(false);
+  if (!r.ok) { $("s-sync-error").textContent = r.error; return; }
+  const d = r.data || {};
+  if (d.cancelled) return;
+  if (!d.removed) { toast(d.reason || "Nada para desinstalar."); return; }
+  toast(d.kept ? "Minecraft desinstalado (mundos e capturas mantidos)." : "Minecraft desinstalado.");
+  loadPack();   // atualiza o status: os arquivos agora aparecem como faltando
+};
 
 // ---------- capturas ----------
 async function loadShots() {
@@ -197,12 +210,12 @@ $("lb-show").onclick = () => state.shot && api.showShot(state.shot.path);
 // ---------- jogar ----------
 function setBusy(b) {
   state.busy = b;
-  $("play").disabled = b || state.running; $("pack-update").disabled = b; $("s-check").disabled = b || state.running; $("s-repair").disabled = b || state.running;
+  $("play").disabled = b || state.running; $("pack-update").disabled = b; $("s-check").disabled = b || state.running; $("s-repair").disabled = b || state.running; $("s-uninstall").disabled = b || state.running;
   $("progress").hidden = !b && !state.running;
   if (!b && !state.running) { $("bar-fill").style.width = "0"; $("s-bar-fill").style.width = "0"; $("s-progress").hidden = true; }
 }
 function setRunning(r) {
-  state.running = r; $("play").hidden = r; $("stop").hidden = !r; $("s-check").disabled = r || state.busy; $("s-repair").disabled = r || state.busy;
+  state.running = r; $("play").hidden = r; $("stop").hidden = !r; $("s-check").disabled = r || state.busy; $("s-repair").disabled = r || state.busy; $("s-uninstall").disabled = r || state.busy;
   $("play").disabled = state.busy || r;
 }
 api.on("progress", (p) => {
